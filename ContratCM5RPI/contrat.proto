@@ -1,0 +1,173 @@
+syntax = "proto3";
+
+// "package" : évite tout conflit de nom avec un autre .proto,
+// comme vu avec l'erreur "duplicate symbol".
+package recystation.comm;
+
+// ============================================================
+// ENVELOPPE : le seul type de message qui circule réellement
+// sur le fil UART. Tout le reste voyage TOUJOURS à l'intérieur
+// d'une Envelope, jamais tout seul.
+// ============================================================
+message Envelope {
+  // Numéro du contrat utilisé par l'émetteur. Sert à détecter
+  // un décalage trop important entre RPi et M5Stack.
+  uint32 protocol_version = 1;
+
+  // Identifiant unique de CE message précis, pour pouvoir dire
+  // "j'accuse réception du message numéro 42" dans un Ack.
+  uint32 message_id = 2;
+
+  // Tiré au hasard à chaque redémarrage de l'émetteur. Sert à
+  // détecter qu'une carte a redémarré (le récepteur oublie
+  // alors les anciens message_id).
+  uint32 session_id = 3;
+
+  // Temps écoulé (ms) depuis le démarrage de l'émetteur.
+  // Décision actée : pas d'horloge réseau, chaque carte compte
+  // depuis SON propre démarrage.
+  uint64 device_uptime_ms = 4;
+
+  // "oneof" = un seul de ces champs est rempli à la fois.
+  oneof payload {
+    Command       command       = 10;
+    Ack           ack           = 11;
+    SensorReport  sensor_report = 12;
+    Alert         alert         = 13;
+    Heartbeat     heartbeat     = 14;
+  }
+}
+
+// ============================================================
+// ACK : accusé de réception. Utilisé UNIQUEMENT pour Command
+// et Alert (jamais pour SensorReport ou Heartbeat).
+// ============================================================
+enum AckStatus {
+  ACK_OK                  = 0; // commande/alerte acceptée
+  ACK_REFUSED_EMERGENCY   = 1; // refusée : arrêt d'urgence actif
+  ACK_INVALID             = 2; // champs incohérents/invalides
+  ACK_BUSY                = 3; // ressource déjà occupée
+  ACK_VERSION_UNSUPPORTED = 4; // protocol_version incompatible
+}
+
+message Ack {
+  // Le message_id (venant de l'Envelope) auquel on répond.
+  uint32 acked_message_id = 1;
+
+  // Résultat de la commande/alerte acquittée.
+  AckStatus status = 2;
+
+  // Texte optionnel, borné à 64 caractères côté applicatif
+  // (Protobuf ne limite pas la taille lui-même, c'est à nous
+  // de vérifier ça dans le code Python/C++ qui utilise ce champ).
+  string detail = 3;
+}
+
+// ============================================================
+// COMMAND : ordre envoyé du RPi vers le M5Stack.
+// ============================================================
+enum CommandType {
+  CMD_OPEN_TRAPDOOR    = 0;
+  CMD_START_COMPACTION = 1;
+  CMD_SET_LED          = 2;
+  CMD_EMERGENCY_STOP   = 3;
+  CMD_READ_SENSORS     = 4;
+  CMD_SET_CHARGE_PORT  = 5;
+}
+
+message Command {
+  // Redondant avec le "oneof params" ci-dessous, mais utile
+  // pour un traitement rapide côté récepteur sans avoir à
+  // inspecter lequel des "params" est rempli.
+  CommandType type = 1;
+
+  oneof params {
+    OpenTrapdoor    open_trapdoor    = 10;
+    StartCompaction start_compaction = 11;
+    SetLed          set_led          = 12;
+    EmergencyStop   emergency_stop   = 13;
+    ReadSensors     read_sensors     = 14;
+    SetChargePort   set_charge_port  = 15;
+  }
+}
+
+// --- Détails de chaque commande ---
+
+message OpenTrapdoor {
+  uint32 bac_id = 1; // identifiant du bac concerné
+}
+
+message StartCompaction {
+  uint32 bac_id = 1;
+}
+
+message SetLed {
+  uint32 led_id = 1;
+  uint32 red    = 2; // 0-255
+  uint32 green  = 3; // 0-255
+  uint32 blue   = 4; // 0-255
+}
+
+message EmergencyStop {
+  // Aucun champ nécessaire : le simple fait de recevoir ce
+  // message déclenche l'arrêt. Message vide volontairement.
+}
+
+message ReadSensors {
+  // Aucun champ nécessaire : demande une lecture immédiate,
+  // en dehors du cycle normal de 500 ms.
+}
+
+message SetChargePort {
+  uint32 port_id = 1;
+  bool   enabled = 2;
+}
+
+// ============================================================
+// SENSOR REPORT : rapport capteurs, envoyé toutes les 500 ms
+// par le M5Stack. PAS d'ACK pour ce type de message (décision
+// actée : un rapport perdu est remplacé 500 ms plus tard).
+// Champs à compléter/affiner au module 1 selon le BOM réel,
+// en respectant la règle : jamais réutiliser un numéro existant.
+// ============================================================
+message SensorReport {
+  uint32 bac_id          = 1;
+  float  fill_level_pct  = 2;
+  float  motor_current_a = 3;
+  bool   trapdoor_closed = 4;
+  float  battery_voltage = 5;
+}
+
+// ============================================================
+// ALERT : événement anormal, envoyé immédiatement (pas
+// d'attente du cycle 500 ms). ACK obligatoire.
+// ============================================================
+enum AlertSeverity {
+  INFO     = 0;
+  WARNING  = 1;
+  CRITICAL = 2;
+}
+
+enum AlertCode {
+  ALERT_UNKNOWN             = 0;
+  ALERT_MOTOR_OVERCURRENT   = 1;
+  ALERT_TRAPDOOR_JAMMED     = 2;
+  ALERT_BATTERY_LOW         = 3;
+  ALERT_EMERGENCY_TRIGGERED = 4;
+}
+
+message Alert {
+  AlertSeverity severity = 1;
+  AlertCode     code     = 2;
+  string        detail   = 3; // borné à 64 caractères, côté applicatif
+}
+
+// ============================================================
+// HEARTBEAT : "signal de vie", envoyé toutes les 2 secondes.
+// Pas d'ACK. Si le RPi n'en reçoit aucun pendant 5 s, c'est le
+// Health Monitor (module 3) qui déclenche l'état sûr.
+// ============================================================
+message Heartbeat {
+  bool emergency_active = 1;
+  bool self_test_ok     = 2;
+}

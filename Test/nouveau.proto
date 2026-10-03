@@ -1,0 +1,7 @@
+syntax = "proto3";
+package nouveau;
+
+message Message {
+  string texte = 1;
+  int32 valeur = 5;
+}
