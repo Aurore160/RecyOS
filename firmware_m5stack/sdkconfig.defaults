@@ -1,0 +1,6 @@
+# Cible : M5Stack StamPLC (ESP32-S3)
+CONFIG_IDF_TARGET="esp32s3"
+CONFIG_FREERTOS_HZ=1000
+CONFIG_ESP_TASK_WDT_EN=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=5
+# A completer avec la taille de flash reelle du StamPLC (a verifier sur la fiche).

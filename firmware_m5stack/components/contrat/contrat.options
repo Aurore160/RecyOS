@@ -1,0 +1,4 @@
+# Tailles maximales pour nanopb (pas d'allocation dynamique sur l'ESP32).
+# detail : borne de 64 caracteres du contrat (63 + octet nul).
+recystation.comm.Ack.detail    max_size:64
+recystation.comm.Alert.detail  max_size:64
