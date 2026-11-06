@@ -24,43 +24,53 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rcontrat.proto\x12\x10recystation.comm\"\xda\x02\n\x08\x45nvelope\x12\x18\n\x10protocol_version\x18\x01 \x01(\r\x12\x12\n\nmessage_id\x18\x02 \x01(\r\x12\x12\n\nsession_id\x18\x03 \x01(\r\x12\x18\n\x10\x64\x65vice_uptime_ms\x18\x04 \x01(\x04\x12,\n\x07\x63ommand\x18\n \x01(\x0b\x32\x19.recystation.comm.CommandH\x00\x12$\n\x03\x61\x63k\x18\x0b \x01(\x0b\x32\x15.recystation.comm.AckH\x00\x12\x37\n\rsensor_report\x18\x0c \x01(\x0b\x32\x1e.recystation.comm.SensorReportH\x00\x12(\n\x05\x61lert\x18\r \x01(\x0b\x32\x17.recystation.comm.AlertH\x00\x12\x30\n\theartbeat\x18\x0e \x01(\x0b\x32\x1b.recystation.comm.HeartbeatH\x00\x42\t\n\x07payload\"\\\n\x03\x41\x63k\x12\x18\n\x10\x61\x63ked_message_id\x18\x01 \x01(\r\x12+\n\x06status\x18\x02 \x01(\x0e\x32\x1b.recystation.comm.AckStatus\x12\x0e\n\x06\x64\x65tail\x18\x03 \x01(\t\"\x93\x03\n\x07\x43ommand\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.recystation.comm.CommandType\x12\x37\n\ropen_trapdoor\x18\n \x01(\x0b\x32\x1e.recystation.comm.OpenTrapdoorH\x00\x12=\n\x10start_compaction\x18\x0b \x01(\x0b\x32!.recystation.comm.StartCompactionH\x00\x12+\n\x07set_led\x18\x0c \x01(\x0b\x32\x18.recystation.comm.SetLedH\x00\x12\x39\n\x0e\x65mergency_stop\x18\r \x01(\x0b\x32\x1f.recystation.comm.EmergencyStopH\x00\x12\x35\n\x0cread_sensors\x18\x0e \x01(\x0b\x32\x1d.recystation.comm.ReadSensorsH\x00\x12:\n\x0fset_charge_port\x18\x0f \x01(\x0b\x32\x1f.recystation.comm.SetChargePortH\x00\x42\x08\n\x06params\"\x1e\n\x0cOpenTrapdoor\x12\x0e\n\x06\x62\x61\x63_id\x18\x01 \x01(\r\"!\n\x0fStartCompaction\x12\x0e\n\x06\x62\x61\x63_id\x18\x01 \x01(\r\"B\n\x06SetLed\x12\x0e\n\x06led_id\x18\x01 \x01(\r\x12\x0b\n\x03red\x18\x02 \x01(\r\x12\r\n\x05green\x18\x03 \x01(\r\x12\x0c\n\x04\x62lue\x18\x04 \x01(\r\"\x0f\n\rEmergencyStop\"\r\n\x0bReadSensors\"1\n\rSetChargePort\x12\x0f\n\x07port_id\x18\x01 \x01(\r\x12\x0f\n\x07\x65nabled\x18\x02 \x01(\x08\"\x81\x01\n\x0cSensorReport\x12\x0e\n\x06\x62\x61\x63_id\x18\x01 \x01(\r\x12\x16\n\x0e\x66ill_level_pct\x18\x02 \x01(\x02\x12\x17\n\x0fmotor_current_a\x18\x03 \x01(\x02\x12\x17\n\x0ftrapdoor_closed\x18\x04 \x01(\x08\x12\x17\n\x0f\x62\x61ttery_voltage\x18\x05 \x01(\x02\"u\n\x05\x41lert\x12\x31\n\x08severity\x18\x01 \x01(\x0e\x32\x1f.recystation.comm.AlertSeverity\x12)\n\x04\x63ode\x18\x02 \x01(\x0e\x32\x1b.recystation.comm.AlertCode\x12\x0e\n\x06\x64\x65tail\x18\x03 \x01(\t\";\n\tHeartbeat\x12\x18\n\x10\x65mergency_active\x18\x01 \x01(\x08\x12\x14\n\x0cself_test_ok\x18\x02 \x01(\x08*n\n\tAckStatus\x12\n\n\x06\x41\x43K_OK\x10\x00\x12\x19\n\x15\x41\x43K_REFUSED_EMERGENCY\x10\x01\x12\x0f\n\x0b\x41\x43K_INVALID\x10\x02\x12\x0c\n\x08\x41\x43K_BUSY\x10\x03\x12\x1b\n\x17\x41\x43K_VERSION_UNSUPPORTED\x10\x04*\x96\x01\n\x0b\x43ommandType\x12\x15\n\x11\x43MD_OPEN_TRAPDOOR\x10\x00\x12\x18\n\x14\x43MD_START_COMPACTION\x10\x01\x12\x0f\n\x0b\x43MD_SET_LED\x10\x02\x12\x16\n\x12\x43MD_EMERGENCY_STOP\x10\x03\x12\x14\n\x10\x43MD_READ_SENSORS\x10\x04\x12\x17\n\x13\x43MD_SET_CHARGE_PORT\x10\x05*4\n\rAlertSeverity\x12\x08\n\x04INFO\x10\x00\x12\x0b\n\x07WARNING\x10\x01\x12\x0c\n\x08\x43RITICAL\x10\x02*\x8c\x01\n\tAlertCode\x12\x11\n\rALERT_UNKNOWN\x10\x00\x12\x1b\n\x17\x41LERT_MOTOR_OVERCURRENT\x10\x01\x12\x19\n\x15\x41LERT_TRAPDOOR_JAMMED\x10\x02\x12\x15\n\x11\x41LERT_BATTERY_LOW\x10\x03\x12\x1d\n\x19\x41LERT_EMERGENCY_TRIGGERED\x10\x04\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rcontrat.proto\x12\x10recystation.comm\"\xda\x02\n\x08\x45nvelope\x12\x18\n\x10protocol_version\x18\x01 \x01(\r\x12\x12\n\nmessage_id\x18\x02 \x01(\r\x12\x12\n\nsession_id\x18\x03 \x01(\r\x12\x18\n\x10\x64\x65vice_uptime_ms\x18\x04 \x01(\x04\x12,\n\x07\x63ommand\x18\n \x01(\x0b\x32\x19.recystation.comm.CommandH\x00\x12$\n\x03\x61\x63k\x18\x0b \x01(\x0b\x32\x15.recystation.comm.AckH\x00\x12\x37\n\rsensor_report\x18\x0c \x01(\x0b\x32\x1e.recystation.comm.SensorReportH\x00\x12(\n\x05\x61lert\x18\r \x01(\x0b\x32\x17.recystation.comm.AlertH\x00\x12\x30\n\theartbeat\x18\x0e \x01(\x0b\x32\x1b.recystation.comm.HeartbeatH\x00\x42\t\n\x07payload\"\\\n\x03\x41\x63k\x12\x18\n\x10\x61\x63ked_message_id\x18\x01 \x01(\r\x12+\n\x06status\x18\x02 \x01(\x0e\x32\x1b.recystation.comm.AckStatus\x12\x0e\n\x06\x64\x65tail\x18\x03 \x01(\t\"\xff\x03\n\x07\x43ommand\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.recystation.comm.CommandType\x12\x37\n\ropen_trapdoor\x18\n \x01(\x0b\x32\x1e.recystation.comm.OpenTrapdoorH\x00\x12=\n\x10start_compaction\x18\x0b \x01(\x0b\x32!.recystation.comm.StartCompactionH\x00\x12+\n\x07set_led\x18\x0c \x01(\x0b\x32\x18.recystation.comm.SetLedH\x00\x12\x39\n\x0e\x65mergency_stop\x18\r \x01(\x0b\x32\x1f.recystation.comm.EmergencyStopH\x00\x12\x35\n\x0cread_sensors\x18\x0e \x01(\x0b\x32\x1d.recystation.comm.ReadSensorsH\x00\x12:\n\x0fset_charge_port\x18\x0f \x01(\x0b\x32\x1f.recystation.comm.SetChargePortH\x00\x12;\n\x0f\x63lear_emergency\x18\x10 \x01(\x0b\x32 .recystation.comm.ClearEmergencyH\x00\x12-\n\x08set_time\x18\x11 \x01(\x0b\x32\x19.recystation.comm.SetTimeH\x00\x42\x08\n\x06params\"2\n\x0cOpenTrapdoor\x12\"\n\x03\x62\x61\x63\x18\x01 \x01(\x0e\x32\x15.recystation.comm.Bac\"5\n\x0fStartCompaction\x12\"\n\x03\x62\x61\x63\x18\x01 \x01(\x0e\x32\x15.recystation.comm.Bac\"B\n\x06SetLed\x12\x0e\n\x06led_id\x18\x01 \x01(\r\x12\x0b\n\x03red\x18\x02 \x01(\r\x12\r\n\x05green\x18\x03 \x01(\r\x12\x0c\n\x04\x62lue\x18\x04 \x01(\r\"\x0f\n\rEmergencyStop\"\r\n\x0bReadSensors\"1\n\rSetChargePort\x12\x0f\n\x07port_id\x18\x01 \x01(\r\x12\x0f\n\x07\x65nabled\x18\x02 \x01(\x08\"\x10\n\x0e\x43learEmergency\"$\n\x07SetTime\x12\x19\n\x11\x65poch_seconds_utc\x18\x01 \x01(\x04\"F\n\x08\x42\x61\x63Level\x12\"\n\x03\x62\x61\x63\x18\x01 \x01(\x0e\x32\x15.recystation.comm.Bac\x12\x16\n\x0e\x66ill_level_pct\x18\x02 \x01(\x02\"\xf1\x02\n\x0cSensorReport\x12*\n\x06levels\x18\x06 \x03(\x0b\x32\x1a.recystation.comm.BacLevel\x12\x15\n\rbus_current_a\x18\x07 \x01(\x02\x12\x19\n\x11\x62\x61ttery_voltage_v\x18\x08 \x01(\x02\x12\x17\n\x0ftrapdoor_closed\x18\t \x01(\x08\x12\x18\n\x10\x65mergency_active\x18\n \x01(\x08\x12\x19\n\x11presence_detected\x18\x0b \x01(\x08\x12\x15\n\rtemperature_c\x18\x0c \x01(\x02\x12\x14\n\x0chumidity_pct\x18\r \x01(\x02\x12\x10\n\x08tilt_deg\x18\x0e \x01(\x02\x12\x15\n\rdi_state_mask\x18\x0f \x01(\r\x12\x18\n\x10\x63harge_port_mask\x18\x10 \x01(\r\x12\x13\n\x0b\x66\x61ult_flags\x18\x11 \x01(\r\x12\x12\n\nvalid_mask\x18\x12 \x01(\rJ\x04\x08\x01\x10\x02J\x04\x08\x02\x10\x03J\x04\x08\x03\x10\x04J\x04\x08\x04\x10\x05J\x04\x08\x05\x10\x06\"u\n\x05\x41lert\x12\x31\n\x08severity\x18\x01 \x01(\x0e\x32\x1f.recystation.comm.AlertSeverity\x12)\n\x04\x63ode\x18\x02 \x01(\x0e\x32\x1b.recystation.comm.AlertCode\x12\x0e\n\x06\x64\x65tail\x18\x03 \x01(\t\"U\n\tHeartbeat\x12\x18\n\x10\x65mergency_active\x18\x01 \x01(\x08\x12\x14\n\x0cself_test_ok\x18\x02 \x01(\x08\x12\x18\n\x10\x66irmware_version\x18\x03 \x01(\r*U\n\x03\x42\x61\x63\x12\x13\n\x0f\x42\x41\x43_UNSPECIFIED\x10\x00\x12\x11\n\rBAC_PLASTIQUE\x10\x01\x12\x0e\n\nBAC_PAPIER\x10\x02\x12\x16\n\x12\x42\x41\x43_NON_RECYCLABLE\x10\x03*\x83\x01\n\tAckStatus\x12\x13\n\x0f\x41\x43K_UNSPECIFIED\x10\x00\x12\n\n\x06\x41\x43K_OK\x10\x01\x12\x19\n\x15\x41\x43K_REFUSED_EMERGENCY\x10\x02\x12\x0f\n\x0b\x41\x43K_INVALID\x10\x03\x12\x0c\n\x08\x41\x43K_BUSY\x10\x04\x12\x1b\n\x17\x41\x43K_VERSION_UNSUPPORTED\x10\x05*\xd6\x01\n\x0b\x43ommandType\x12\x13\n\x0f\x43MD_UNSPECIFIED\x10\x00\x12\x15\n\x11\x43MD_OPEN_TRAPDOOR\x10\x01\x12\x18\n\x14\x43MD_START_COMPACTION\x10\x02\x12\x0f\n\x0b\x43MD_SET_LED\x10\x03\x12\x16\n\x12\x43MD_EMERGENCY_STOP\x10\x04\x12\x14\n\x10\x43MD_READ_SENSORS\x10\x05\x12\x17\n\x13\x43MD_SET_CHARGE_PORT\x10\x06\x12\x17\n\x13\x43MD_CLEAR_EMERGENCY\x10\x07\x12\x10\n\x0c\x43MD_SET_TIME\x10\x08*\x8e\x02\n\x08ValidBit\x12\x0e\n\nVALID_NONE\x10\x00\x12\x1a\n\x16VALID_NIVEAU_PLASTIQUE\x10\x01\x12\x17\n\x13VALID_NIVEAU_PAPIER\x10\x02\x12\x1f\n\x1bVALID_NIVEAU_NON_RECYCLABLE\x10\x04\x12\x15\n\x11VALID_COURANT_BUS\x10\x08\x12\x1a\n\x16VALID_TENSION_BATTERIE\x10\x10\x12\x10\n\x0cVALID_TRAPPE\x10 \x12\x12\n\x0eVALID_PRESENCE\x10@\x12\x16\n\x11VALID_TEMPERATURE\x10\x80\x01\x12\x13\n\x0eVALID_HUMIDITE\x10\x80\x02\x12\x16\n\x11VALID_INCLINAISON\x10\x80\x04*N\n\rAlertSeverity\x12\x18\n\x14SEVERITY_UNSPECIFIED\x10\x00\x12\x08\n\x04INFO\x10\x01\x12\x0b\n\x07WARNING\x10\x02\x12\x0c\n\x08\x43RITICAL\x10\x03*\x8c\x01\n\tAlertCode\x12\x11\n\rALERT_UNKNOWN\x10\x00\x12\x1b\n\x17\x41LERT_MOTOR_OVERCURRENT\x10\x01\x12\x19\n\x15\x41LERT_TRAPDOOR_JAMMED\x10\x02\x12\x15\n\x11\x41LERT_BATTERY_LOW\x10\x03\x12\x1d\n\x19\x41LERT_EMERGENCY_TRIGGERED\x10\x04\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'contrat_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_ACKSTATUS']._serialized_start=1414
-  _globals['_ACKSTATUS']._serialized_end=1524
-  _globals['_COMMANDTYPE']._serialized_start=1527
-  _globals['_COMMANDTYPE']._serialized_end=1677
-  _globals['_ALERTSEVERITY']._serialized_start=1679
-  _globals['_ALERTSEVERITY']._serialized_end=1731
-  _globals['_ALERTCODE']._serialized_start=1734
-  _globals['_ALERTCODE']._serialized_end=1874
+  _globals['_BAC']._serialized_start=1956
+  _globals['_BAC']._serialized_end=2041
+  _globals['_ACKSTATUS']._serialized_start=2044
+  _globals['_ACKSTATUS']._serialized_end=2175
+  _globals['_COMMANDTYPE']._serialized_start=2178
+  _globals['_COMMANDTYPE']._serialized_end=2392
+  _globals['_VALIDBIT']._serialized_start=2395
+  _globals['_VALIDBIT']._serialized_end=2665
+  _globals['_ALERTSEVERITY']._serialized_start=2667
+  _globals['_ALERTSEVERITY']._serialized_end=2745
+  _globals['_ALERTCODE']._serialized_start=2748
+  _globals['_ALERTCODE']._serialized_end=2888
   _globals['_ENVELOPE']._serialized_start=36
   _globals['_ENVELOPE']._serialized_end=382
   _globals['_ACK']._serialized_start=384
   _globals['_ACK']._serialized_end=476
   _globals['_COMMAND']._serialized_start=479
-  _globals['_COMMAND']._serialized_end=882
-  _globals['_OPENTRAPDOOR']._serialized_start=884
-  _globals['_OPENTRAPDOOR']._serialized_end=914
-  _globals['_STARTCOMPACTION']._serialized_start=916
-  _globals['_STARTCOMPACTION']._serialized_end=949
-  _globals['_SETLED']._serialized_start=951
-  _globals['_SETLED']._serialized_end=1017
-  _globals['_EMERGENCYSTOP']._serialized_start=1019
-  _globals['_EMERGENCYSTOP']._serialized_end=1034
-  _globals['_READSENSORS']._serialized_start=1036
-  _globals['_READSENSORS']._serialized_end=1049
-  _globals['_SETCHARGEPORT']._serialized_start=1051
-  _globals['_SETCHARGEPORT']._serialized_end=1100
-  _globals['_SENSORREPORT']._serialized_start=1103
-  _globals['_SENSORREPORT']._serialized_end=1232
-  _globals['_ALERT']._serialized_start=1234
-  _globals['_ALERT']._serialized_end=1351
-  _globals['_HEARTBEAT']._serialized_start=1353
-  _globals['_HEARTBEAT']._serialized_end=1412
+  _globals['_COMMAND']._serialized_end=990
+  _globals['_OPENTRAPDOOR']._serialized_start=992
+  _globals['_OPENTRAPDOOR']._serialized_end=1042
+  _globals['_STARTCOMPACTION']._serialized_start=1044
+  _globals['_STARTCOMPACTION']._serialized_end=1097
+  _globals['_SETLED']._serialized_start=1099
+  _globals['_SETLED']._serialized_end=1165
+  _globals['_EMERGENCYSTOP']._serialized_start=1167
+  _globals['_EMERGENCYSTOP']._serialized_end=1182
+  _globals['_READSENSORS']._serialized_start=1184
+  _globals['_READSENSORS']._serialized_end=1197
+  _globals['_SETCHARGEPORT']._serialized_start=1199
+  _globals['_SETCHARGEPORT']._serialized_end=1248
+  _globals['_CLEAREMERGENCY']._serialized_start=1250
+  _globals['_CLEAREMERGENCY']._serialized_end=1266
+  _globals['_SETTIME']._serialized_start=1268
+  _globals['_SETTIME']._serialized_end=1304
+  _globals['_BACLEVEL']._serialized_start=1306
+  _globals['_BACLEVEL']._serialized_end=1376
+  _globals['_SENSORREPORT']._serialized_start=1379
+  _globals['_SENSORREPORT']._serialized_end=1748
+  _globals['_ALERT']._serialized_start=1750
+  _globals['_ALERT']._serialized_end=1867
+  _globals['_HEARTBEAT']._serialized_start=1869
+  _globals['_HEARTBEAT']._serialized_end=1954
 # @@protoc_insertion_point(module_scope)

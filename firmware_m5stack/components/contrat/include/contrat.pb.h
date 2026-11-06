@@ -10,27 +10,67 @@
 #endif
 
 /* Enum definitions */
+/* Les trois bacs de la borne (bac métal supprimé).
+ "Non recyclable" = "Autres déchets" (même bac). */
+typedef enum _recystation_comm_Bac {
+    recystation_comm_Bac_BAC_UNSPECIFIED = 0, /* refusé */
+    recystation_comm_Bac_BAC_PLASTIQUE = 1,
+    recystation_comm_Bac_BAC_PAPIER = 2,
+    recystation_comm_Bac_BAC_NON_RECYCLABLE = 3
+} recystation_comm_Bac;
+
+/* ============================================================
+ ACK : accusé de réception. Utilisé UNIQUEMENT pour Command
+ et Alert (jamais pour SensorReport ou Heartbeat).
+ ============================================================ */
 typedef enum _recystation_comm_AckStatus {
-    recystation_comm_AckStatus_ACK_OK = 0,
-    recystation_comm_AckStatus_ACK_REFUSED_EMERGENCY = 1,
-    recystation_comm_AckStatus_ACK_INVALID = 2,
-    recystation_comm_AckStatus_ACK_BUSY = 3,
-    recystation_comm_AckStatus_ACK_VERSION_UNSUPPORTED = 4
+    recystation_comm_AckStatus_ACK_UNSPECIFIED = 0, /* un Ack vide n'est PAS un succès */
+    recystation_comm_AckStatus_ACK_OK = 1, /* commande/alerte acceptée */
+    recystation_comm_AckStatus_ACK_REFUSED_EMERGENCY = 2, /* refusée : arrêt d'urgence actif */
+    recystation_comm_AckStatus_ACK_INVALID = 3, /* champs incohérents/invalides */
+    recystation_comm_AckStatus_ACK_BUSY = 4, /* ressource déjà occupée */
+    recystation_comm_AckStatus_ACK_VERSION_UNSUPPORTED = 5 /* protocol_version incompatible */
 } recystation_comm_AckStatus;
 
+/* ============================================================
+ COMMAND : ordre envoyé du RPi vers le M5Stack.
+ ============================================================ */
 typedef enum _recystation_comm_CommandType {
-    recystation_comm_CommandType_CMD_OPEN_TRAPDOOR = 0,
-    recystation_comm_CommandType_CMD_START_COMPACTION = 1,
-    recystation_comm_CommandType_CMD_SET_LED = 2,
-    recystation_comm_CommandType_CMD_EMERGENCY_STOP = 3,
-    recystation_comm_CommandType_CMD_READ_SENSORS = 4,
-    recystation_comm_CommandType_CMD_SET_CHARGE_PORT = 5
+    recystation_comm_CommandType_CMD_UNSPECIFIED = 0, /* refusé (ACK_INVALID) */
+    recystation_comm_CommandType_CMD_OPEN_TRAPDOOR = 1,
+    recystation_comm_CommandType_CMD_START_COMPACTION = 2, /* Plastique et Non-recyclable seulement */
+    recystation_comm_CommandType_CMD_SET_LED = 3, /* LED RGB interne du StamPLC (couleurs unies) */
+    recystation_comm_CommandType_CMD_EMERGENCY_STOP = 4,
+    recystation_comm_CommandType_CMD_READ_SENSORS = 5,
+    recystation_comm_CommandType_CMD_SET_CHARGE_PORT = 6, /* DO 3 : convertisseurs USB */
+    recystation_comm_CommandType_CMD_CLEAR_EMERGENCY = 7, /* réarmement demandé par le CM5 (décision P3) */
+    recystation_comm_CommandType_CMD_SET_TIME = 8 /* règle l'heure du RTC au démarrage (décision P13) */
 } recystation_comm_CommandType;
 
+/* Bits de SensorReport.valid_mask */
+typedef enum _recystation_comm_ValidBit {
+    recystation_comm_ValidBit_VALID_NONE = 0,
+    recystation_comm_ValidBit_VALID_NIVEAU_PLASTIQUE = 1, /* 1 << 0 */
+    recystation_comm_ValidBit_VALID_NIVEAU_PAPIER = 2, /* 1 << 1 */
+    recystation_comm_ValidBit_VALID_NIVEAU_NON_RECYCLABLE = 4, /* 1 << 2 */
+    recystation_comm_ValidBit_VALID_COURANT_BUS = 8, /* 1 << 3 */
+    recystation_comm_ValidBit_VALID_TENSION_BATTERIE = 16, /* 1 << 4 */
+    recystation_comm_ValidBit_VALID_TRAPPE = 32, /* 1 << 5 */
+    recystation_comm_ValidBit_VALID_PRESENCE = 64, /* 1 << 6 */
+    recystation_comm_ValidBit_VALID_TEMPERATURE = 128, /* 1 << 7 */
+    recystation_comm_ValidBit_VALID_HUMIDITE = 256, /* 1 << 8 */
+    recystation_comm_ValidBit_VALID_INCLINAISON = 512 /* 1 << 9 */
+} recystation_comm_ValidBit;
+
+/* ============================================================
+ ALERT : événement anormal, envoyé immédiatement (pas
+ d'attente du cycle 500 ms). ACK obligatoire.
+ ============================================================ */
 typedef enum _recystation_comm_AlertSeverity {
-    recystation_comm_AlertSeverity_INFO = 0,
-    recystation_comm_AlertSeverity_WARNING = 1,
-    recystation_comm_AlertSeverity_CRITICAL = 2
+    recystation_comm_AlertSeverity_SEVERITY_UNSPECIFIED = 0, /* refusé */
+    recystation_comm_AlertSeverity_INFO = 1,
+    recystation_comm_AlertSeverity_WARNING = 2,
+    recystation_comm_AlertSeverity_CRITICAL = 3
 } recystation_comm_AlertSeverity;
 
 typedef enum _recystation_comm_AlertCode {
@@ -43,31 +83,36 @@ typedef enum _recystation_comm_AlertCode {
 
 /* Struct definitions */
 typedef struct _recystation_comm_Ack {
+    /* Le message_id (venant de l'Envelope) auquel on répond. */
     uint32_t acked_message_id;
+    /* Résultat de la commande/alerte acquittée. */
     recystation_comm_AckStatus status;
+    /* Texte optionnel, borné à 64 caractères (max_size dans
+ contrat.options pour nanopb ; vérifié côté Python). */
     char detail[64];
 } recystation_comm_Ack;
 
 typedef struct _recystation_comm_OpenTrapdoor {
-    uint32_t bac_id;
+    recystation_comm_Bac bac; /* BAC_UNSPECIFIED refusé */
 } recystation_comm_OpenTrapdoor;
 
 typedef struct _recystation_comm_StartCompaction {
-    uint32_t bac_id;
+    recystation_comm_Bac bac; /* BAC_PAPIER et BAC_UNSPECIFIED refusés (ACK_INVALID) */
 } recystation_comm_StartCompaction;
 
 typedef struct _recystation_comm_SetLed {
     uint32_t led_id;
-    uint32_t red;
-    uint32_t green;
-    uint32_t blue;
+    uint32_t red; /* 0-255 */
+    uint32_t green; /* 0-255 */
+    uint32_t blue; /* 0-255 */
 } recystation_comm_SetLed;
 
-typedef struct _recystation_comm_EmergencyStop {
+typedef struct _recystation_comm_EmergencyStop { /* Aucun champ nécessaire : le simple fait de recevoir ce
+ message déclenche l'arrêt. Message vide volontairement. */
     char dummy_field;
 } recystation_comm_EmergencyStop;
 
-typedef struct _recystation_comm_ReadSensors {
+typedef struct _recystation_comm_ReadSensors { /* Demande une lecture immédiate, hors cycle normal de 500 ms. */
     char dummy_field;
 } recystation_comm_ReadSensors;
 
@@ -76,7 +121,18 @@ typedef struct _recystation_comm_SetChargePort {
     bool enabled;
 } recystation_comm_SetChargePort;
 
+typedef struct _recystation_comm_ClearEmergency { /* Réarmement : accepté seulement si le bouton d'arrêt d'urgence
+ est physiquement réarmé (DI1 revenu) ET que ce message arrive. */
+    char dummy_field;
+} recystation_comm_ClearEmergency;
+
+typedef struct _recystation_comm_SetTime {
+    uint64_t epoch_seconds_utc; /* heure UTC envoyée par le CM5 */
+} recystation_comm_SetTime;
+
 typedef struct _recystation_comm_Command {
+    /* Doit correspondre au "params" rempli. Si le type et le "params"
+ se contredisent, ou si type == CMD_UNSPECIFIED : ACK_INVALID. */
     recystation_comm_CommandType type;
     pb_size_t which_params;
     union {
@@ -86,32 +142,84 @@ typedef struct _recystation_comm_Command {
         recystation_comm_EmergencyStop emergency_stop;
         recystation_comm_ReadSensors read_sensors;
         recystation_comm_SetChargePort set_charge_port;
+        recystation_comm_ClearEmergency clear_emergency;
+        recystation_comm_SetTime set_time;
     } params;
 } recystation_comm_Command;
 
-typedef struct _recystation_comm_SensorReport {
-    uint32_t bac_id;
+/* ============================================================
+ SENSOR REPORT : rapport capteurs complet, toutes les 500 ms.
+ PAS d'ACK pour ce type de message.
+ Un capteur absent n'est PAS "0 %" : le bit correspondant de
+ valid_mask est à 0 et la valeur doit être ignorée.
+ ============================================================ */
+typedef struct _recystation_comm_BacLevel {
+    recystation_comm_Bac bac;
     float fill_level_pct;
-    float motor_current_a;
+} recystation_comm_BacLevel;
+
+typedef struct _recystation_comm_SensorReport {
+    /* Niveau de remplissage des 3 bacs (jusqu'à 3 entrées). */
+    pb_size_t levels_count;
+    recystation_comm_BacLevel levels[3];
+    /* Courant du BUS (INA226 du StamPLC), pas par moteur (décision P8
+ à confirmer : courant par moteur non mesuré en V1). */
+    float bus_current_a;
+    float battery_voltage_v;
     bool trapdoor_closed;
-    float battery_voltage;
+    bool emergency_active; /* état de DI1 / verrou d'arrêt d'urgence */
+    bool presence_detected; /* RCWL-0516 (PoC) ou cellule photoélectrique */
+    float temperature_c; /* BME680 */
+    float humidity_pct; /* BME680 */
+    float tilt_deg; /* MPU6050 */
+    /* Bits d'état : DI1..DI8 (bit 0 = DI1). */
+    uint32_t di_state_mask;
+    /* Bits des ports de charge USB (DO 3 : bit 0). */
+    uint32_t charge_port_mask;
+    /* Drapeaux de défaut (bits à définir avec les alertes, décision P10). */
+    uint32_t fault_flags;
+    /* Bits ValidBit : quelles mesures ci-dessus sont fiables. */
+    uint32_t valid_mask;
 } recystation_comm_SensorReport;
 
 typedef struct _recystation_comm_Alert {
     recystation_comm_AlertSeverity severity;
     recystation_comm_AlertCode code;
-    char detail[64];
+    char detail[64]; /* borné à 64 caractères */
 } recystation_comm_Alert;
 
+/* ============================================================
+ HEARTBEAT : "signal de vie", envoyé toutes les 2 secondes.
+ Pas d'ACK. Si le RPi n'en reçoit aucun pendant 5 s, c'est le
+ Health Monitor (module 3) qui déclenche l'état sûr.
+ ============================================================ */
 typedef struct _recystation_comm_Heartbeat {
     bool emergency_active;
     bool self_test_ok;
+    /* Version du firmware du StamPLC (ex. 0x00010002 = 1.0.2). */
+    uint32_t firmware_version;
 } recystation_comm_Heartbeat;
 
+/* ============================================================
+ ENVELOPPE : le seul type de message qui circule réellement
+ sur le fil UART. Tout le reste voyage TOUJOURS à l'intérieur
+ d'une Envelope, jamais tout seul.
+ Trame sur le fil : 0x00 + COBS( Protobuf(Envelope) + CRC-16 ) + 0x00
+ (CRC-16 et taille maximale : voir RecyOS/transport.py).
+ ============================================================ */
 typedef struct _recystation_comm_Envelope {
+    /* Version du contrat utilisée par l'émetteur (2 pour ce fichier).
+ Sert à détecter un décalage entre RPi et M5Stack. */
     uint32_t protocol_version;
+    /* Identifiant unique de CE message précis, pour pouvoir dire
+ "j'accuse réception du message numéro 42" dans un Ack. */
     uint32_t message_id;
+    /* Tiré au hasard à chaque redémarrage de l'émetteur. Sert à
+ détecter qu'une carte a redémarré (le récepteur oublie
+ alors les anciens message_id). */
     uint32_t session_id;
+    /* Temps écoulé (ms) depuis le démarrage de l'émetteur.
+ Pas d'horloge réseau : chaque carte compte depuis SON démarrage. */
     uint64_t device_uptime_ms;
     pb_size_t which_payload;
     union {
@@ -129,15 +237,23 @@ extern "C" {
 #endif
 
 /* Helper constants for enums */
-#define _recystation_comm_AckStatus_MIN recystation_comm_AckStatus_ACK_OK
+#define _recystation_comm_Bac_MIN recystation_comm_Bac_BAC_UNSPECIFIED
+#define _recystation_comm_Bac_MAX recystation_comm_Bac_BAC_NON_RECYCLABLE
+#define _recystation_comm_Bac_ARRAYSIZE ((recystation_comm_Bac)(recystation_comm_Bac_BAC_NON_RECYCLABLE+1))
+
+#define _recystation_comm_AckStatus_MIN recystation_comm_AckStatus_ACK_UNSPECIFIED
 #define _recystation_comm_AckStatus_MAX recystation_comm_AckStatus_ACK_VERSION_UNSUPPORTED
 #define _recystation_comm_AckStatus_ARRAYSIZE ((recystation_comm_AckStatus)(recystation_comm_AckStatus_ACK_VERSION_UNSUPPORTED+1))
 
-#define _recystation_comm_CommandType_MIN recystation_comm_CommandType_CMD_OPEN_TRAPDOOR
-#define _recystation_comm_CommandType_MAX recystation_comm_CommandType_CMD_SET_CHARGE_PORT
-#define _recystation_comm_CommandType_ARRAYSIZE ((recystation_comm_CommandType)(recystation_comm_CommandType_CMD_SET_CHARGE_PORT+1))
+#define _recystation_comm_CommandType_MIN recystation_comm_CommandType_CMD_UNSPECIFIED
+#define _recystation_comm_CommandType_MAX recystation_comm_CommandType_CMD_SET_TIME
+#define _recystation_comm_CommandType_ARRAYSIZE ((recystation_comm_CommandType)(recystation_comm_CommandType_CMD_SET_TIME+1))
 
-#define _recystation_comm_AlertSeverity_MIN recystation_comm_AlertSeverity_INFO
+#define _recystation_comm_ValidBit_MIN recystation_comm_ValidBit_VALID_NONE
+#define _recystation_comm_ValidBit_MAX recystation_comm_ValidBit_VALID_INCLINAISON
+#define _recystation_comm_ValidBit_ARRAYSIZE ((recystation_comm_ValidBit)(recystation_comm_ValidBit_VALID_INCLINAISON+1))
+
+#define _recystation_comm_AlertSeverity_MIN recystation_comm_AlertSeverity_SEVERITY_UNSPECIFIED
 #define _recystation_comm_AlertSeverity_MAX recystation_comm_AlertSeverity_CRITICAL
 #define _recystation_comm_AlertSeverity_ARRAYSIZE ((recystation_comm_AlertSeverity)(recystation_comm_AlertSeverity_CRITICAL+1))
 
@@ -150,11 +266,17 @@ extern "C" {
 
 #define recystation_comm_Command_type_ENUMTYPE recystation_comm_CommandType
 
+#define recystation_comm_OpenTrapdoor_bac_ENUMTYPE recystation_comm_Bac
+
+#define recystation_comm_StartCompaction_bac_ENUMTYPE recystation_comm_Bac
 
 
 
 
 
+
+
+#define recystation_comm_BacLevel_bac_ENUMTYPE recystation_comm_Bac
 
 
 #define recystation_comm_Alert_severity_ENUMTYPE recystation_comm_AlertSeverity
@@ -166,40 +288,47 @@ extern "C" {
 #define recystation_comm_Envelope_init_default   {0, 0, 0, 0, 0, {recystation_comm_Command_init_default}}
 #define recystation_comm_Ack_init_default        {0, _recystation_comm_AckStatus_MIN, ""}
 #define recystation_comm_Command_init_default    {_recystation_comm_CommandType_MIN, 0, {recystation_comm_OpenTrapdoor_init_default}}
-#define recystation_comm_OpenTrapdoor_init_default {0}
-#define recystation_comm_StartCompaction_init_default {0}
+#define recystation_comm_OpenTrapdoor_init_default {_recystation_comm_Bac_MIN}
+#define recystation_comm_StartCompaction_init_default {_recystation_comm_Bac_MIN}
 #define recystation_comm_SetLed_init_default     {0, 0, 0, 0}
 #define recystation_comm_EmergencyStop_init_default {0}
 #define recystation_comm_ReadSensors_init_default {0}
 #define recystation_comm_SetChargePort_init_default {0, 0}
-#define recystation_comm_SensorReport_init_default {0, 0, 0, 0, 0}
+#define recystation_comm_ClearEmergency_init_default {0}
+#define recystation_comm_SetTime_init_default    {0}
+#define recystation_comm_BacLevel_init_default   {_recystation_comm_Bac_MIN, 0}
+#define recystation_comm_SensorReport_init_default {0, {recystation_comm_BacLevel_init_default, recystation_comm_BacLevel_init_default, recystation_comm_BacLevel_init_default}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 #define recystation_comm_Alert_init_default      {_recystation_comm_AlertSeverity_MIN, _recystation_comm_AlertCode_MIN, ""}
-#define recystation_comm_Heartbeat_init_default  {0, 0}
+#define recystation_comm_Heartbeat_init_default  {0, 0, 0}
 #define recystation_comm_Envelope_init_zero      {0, 0, 0, 0, 0, {recystation_comm_Command_init_zero}}
 #define recystation_comm_Ack_init_zero           {0, _recystation_comm_AckStatus_MIN, ""}
 #define recystation_comm_Command_init_zero       {_recystation_comm_CommandType_MIN, 0, {recystation_comm_OpenTrapdoor_init_zero}}
-#define recystation_comm_OpenTrapdoor_init_zero  {0}
-#define recystation_comm_StartCompaction_init_zero {0}
+#define recystation_comm_OpenTrapdoor_init_zero  {_recystation_comm_Bac_MIN}
+#define recystation_comm_StartCompaction_init_zero {_recystation_comm_Bac_MIN}
 #define recystation_comm_SetLed_init_zero        {0, 0, 0, 0}
 #define recystation_comm_EmergencyStop_init_zero {0}
 #define recystation_comm_ReadSensors_init_zero   {0}
 #define recystation_comm_SetChargePort_init_zero {0, 0}
-#define recystation_comm_SensorReport_init_zero  {0, 0, 0, 0, 0}
+#define recystation_comm_ClearEmergency_init_zero {0}
+#define recystation_comm_SetTime_init_zero       {0}
+#define recystation_comm_BacLevel_init_zero      {_recystation_comm_Bac_MIN, 0}
+#define recystation_comm_SensorReport_init_zero  {0, {recystation_comm_BacLevel_init_zero, recystation_comm_BacLevel_init_zero, recystation_comm_BacLevel_init_zero}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 #define recystation_comm_Alert_init_zero         {_recystation_comm_AlertSeverity_MIN, _recystation_comm_AlertCode_MIN, ""}
-#define recystation_comm_Heartbeat_init_zero     {0, 0}
+#define recystation_comm_Heartbeat_init_zero     {0, 0, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define recystation_comm_Ack_acked_message_id_tag 1
 #define recystation_comm_Ack_status_tag          2
 #define recystation_comm_Ack_detail_tag          3
-#define recystation_comm_OpenTrapdoor_bac_id_tag 1
-#define recystation_comm_StartCompaction_bac_id_tag 1
+#define recystation_comm_OpenTrapdoor_bac_tag    1
+#define recystation_comm_StartCompaction_bac_tag 1
 #define recystation_comm_SetLed_led_id_tag       1
 #define recystation_comm_SetLed_red_tag          2
 #define recystation_comm_SetLed_green_tag        3
 #define recystation_comm_SetLed_blue_tag         4
 #define recystation_comm_SetChargePort_port_id_tag 1
 #define recystation_comm_SetChargePort_enabled_tag 2
+#define recystation_comm_SetTime_epoch_seconds_utc_tag 1
 #define recystation_comm_Command_type_tag        1
 #define recystation_comm_Command_open_trapdoor_tag 10
 #define recystation_comm_Command_start_compaction_tag 11
@@ -207,16 +336,29 @@ extern "C" {
 #define recystation_comm_Command_emergency_stop_tag 13
 #define recystation_comm_Command_read_sensors_tag 14
 #define recystation_comm_Command_set_charge_port_tag 15
-#define recystation_comm_SensorReport_bac_id_tag 1
-#define recystation_comm_SensorReport_fill_level_pct_tag 2
-#define recystation_comm_SensorReport_motor_current_a_tag 3
-#define recystation_comm_SensorReport_trapdoor_closed_tag 4
-#define recystation_comm_SensorReport_battery_voltage_tag 5
+#define recystation_comm_Command_clear_emergency_tag 16
+#define recystation_comm_Command_set_time_tag    17
+#define recystation_comm_BacLevel_bac_tag        1
+#define recystation_comm_BacLevel_fill_level_pct_tag 2
+#define recystation_comm_SensorReport_levels_tag 6
+#define recystation_comm_SensorReport_bus_current_a_tag 7
+#define recystation_comm_SensorReport_battery_voltage_v_tag 8
+#define recystation_comm_SensorReport_trapdoor_closed_tag 9
+#define recystation_comm_SensorReport_emergency_active_tag 10
+#define recystation_comm_SensorReport_presence_detected_tag 11
+#define recystation_comm_SensorReport_temperature_c_tag 12
+#define recystation_comm_SensorReport_humidity_pct_tag 13
+#define recystation_comm_SensorReport_tilt_deg_tag 14
+#define recystation_comm_SensorReport_di_state_mask_tag 15
+#define recystation_comm_SensorReport_charge_port_mask_tag 16
+#define recystation_comm_SensorReport_fault_flags_tag 17
+#define recystation_comm_SensorReport_valid_mask_tag 18
 #define recystation_comm_Alert_severity_tag      1
 #define recystation_comm_Alert_code_tag          2
 #define recystation_comm_Alert_detail_tag        3
 #define recystation_comm_Heartbeat_emergency_active_tag 1
 #define recystation_comm_Heartbeat_self_test_ok_tag 2
+#define recystation_comm_Heartbeat_firmware_version_tag 3
 #define recystation_comm_Envelope_protocol_version_tag 1
 #define recystation_comm_Envelope_message_id_tag 2
 #define recystation_comm_Envelope_session_id_tag 3
@@ -260,7 +402,9 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (params,start_compaction,params.start_compact
 X(a, STATIC,   ONEOF,    MESSAGE,  (params,set_led,params.set_led),  12) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (params,emergency_stop,params.emergency_stop),  13) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (params,read_sensors,params.read_sensors),  14) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (params,set_charge_port,params.set_charge_port),  15)
+X(a, STATIC,   ONEOF,    MESSAGE,  (params,set_charge_port,params.set_charge_port),  15) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (params,clear_emergency,params.clear_emergency),  16) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (params,set_time,params.set_time),  17)
 #define recystation_comm_Command_CALLBACK NULL
 #define recystation_comm_Command_DEFAULT NULL
 #define recystation_comm_Command_params_open_trapdoor_MSGTYPE recystation_comm_OpenTrapdoor
@@ -269,14 +413,16 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (params,set_charge_port,params.set_charge_por
 #define recystation_comm_Command_params_emergency_stop_MSGTYPE recystation_comm_EmergencyStop
 #define recystation_comm_Command_params_read_sensors_MSGTYPE recystation_comm_ReadSensors
 #define recystation_comm_Command_params_set_charge_port_MSGTYPE recystation_comm_SetChargePort
+#define recystation_comm_Command_params_clear_emergency_MSGTYPE recystation_comm_ClearEmergency
+#define recystation_comm_Command_params_set_time_MSGTYPE recystation_comm_SetTime
 
 #define recystation_comm_OpenTrapdoor_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   bac_id,            1)
+X(a, STATIC,   SINGULAR, UENUM,    bac,               1)
 #define recystation_comm_OpenTrapdoor_CALLBACK NULL
 #define recystation_comm_OpenTrapdoor_DEFAULT NULL
 
 #define recystation_comm_StartCompaction_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   bac_id,            1)
+X(a, STATIC,   SINGULAR, UENUM,    bac,               1)
 #define recystation_comm_StartCompaction_CALLBACK NULL
 #define recystation_comm_StartCompaction_DEFAULT NULL
 
@@ -304,14 +450,39 @@ X(a, STATIC,   SINGULAR, BOOL,     enabled,           2)
 #define recystation_comm_SetChargePort_CALLBACK NULL
 #define recystation_comm_SetChargePort_DEFAULT NULL
 
+#define recystation_comm_ClearEmergency_FIELDLIST(X, a) \
+
+#define recystation_comm_ClearEmergency_CALLBACK NULL
+#define recystation_comm_ClearEmergency_DEFAULT NULL
+
+#define recystation_comm_SetTime_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT64,   epoch_seconds_utc,   1)
+#define recystation_comm_SetTime_CALLBACK NULL
+#define recystation_comm_SetTime_DEFAULT NULL
+
+#define recystation_comm_BacLevel_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UENUM,    bac,               1) \
+X(a, STATIC,   SINGULAR, FLOAT,    fill_level_pct,    2)
+#define recystation_comm_BacLevel_CALLBACK NULL
+#define recystation_comm_BacLevel_DEFAULT NULL
+
 #define recystation_comm_SensorReport_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UINT32,   bac_id,            1) \
-X(a, STATIC,   SINGULAR, FLOAT,    fill_level_pct,    2) \
-X(a, STATIC,   SINGULAR, FLOAT,    motor_current_a,   3) \
-X(a, STATIC,   SINGULAR, BOOL,     trapdoor_closed,   4) \
-X(a, STATIC,   SINGULAR, FLOAT,    battery_voltage,   5)
+X(a, STATIC,   REPEATED, MESSAGE,  levels,            6) \
+X(a, STATIC,   SINGULAR, FLOAT,    bus_current_a,     7) \
+X(a, STATIC,   SINGULAR, FLOAT,    battery_voltage_v,   8) \
+X(a, STATIC,   SINGULAR, BOOL,     trapdoor_closed,   9) \
+X(a, STATIC,   SINGULAR, BOOL,     emergency_active,  10) \
+X(a, STATIC,   SINGULAR, BOOL,     presence_detected,  11) \
+X(a, STATIC,   SINGULAR, FLOAT,    temperature_c,    12) \
+X(a, STATIC,   SINGULAR, FLOAT,    humidity_pct,     13) \
+X(a, STATIC,   SINGULAR, FLOAT,    tilt_deg,         14) \
+X(a, STATIC,   SINGULAR, UINT32,   di_state_mask,    15) \
+X(a, STATIC,   SINGULAR, UINT32,   charge_port_mask,  16) \
+X(a, STATIC,   SINGULAR, UINT32,   fault_flags,      17) \
+X(a, STATIC,   SINGULAR, UINT32,   valid_mask,       18)
 #define recystation_comm_SensorReport_CALLBACK NULL
 #define recystation_comm_SensorReport_DEFAULT NULL
+#define recystation_comm_SensorReport_levels_MSGTYPE recystation_comm_BacLevel
 
 #define recystation_comm_Alert_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    severity,          1) \
@@ -322,7 +493,8 @@ X(a, STATIC,   SINGULAR, STRING,   detail,            3)
 
 #define recystation_comm_Heartbeat_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, BOOL,     emergency_active,   1) \
-X(a, STATIC,   SINGULAR, BOOL,     self_test_ok,      2)
+X(a, STATIC,   SINGULAR, BOOL,     self_test_ok,      2) \
+X(a, STATIC,   SINGULAR, UINT32,   firmware_version,   3)
 #define recystation_comm_Heartbeat_CALLBACK NULL
 #define recystation_comm_Heartbeat_DEFAULT NULL
 
@@ -335,6 +507,9 @@ extern const pb_msgdesc_t recystation_comm_SetLed_msg;
 extern const pb_msgdesc_t recystation_comm_EmergencyStop_msg;
 extern const pb_msgdesc_t recystation_comm_ReadSensors_msg;
 extern const pb_msgdesc_t recystation_comm_SetChargePort_msg;
+extern const pb_msgdesc_t recystation_comm_ClearEmergency_msg;
+extern const pb_msgdesc_t recystation_comm_SetTime_msg;
+extern const pb_msgdesc_t recystation_comm_BacLevel_msg;
 extern const pb_msgdesc_t recystation_comm_SensorReport_msg;
 extern const pb_msgdesc_t recystation_comm_Alert_msg;
 extern const pb_msgdesc_t recystation_comm_Heartbeat_msg;
@@ -349,6 +524,9 @@ extern const pb_msgdesc_t recystation_comm_Heartbeat_msg;
 #define recystation_comm_EmergencyStop_fields &recystation_comm_EmergencyStop_msg
 #define recystation_comm_ReadSensors_fields &recystation_comm_ReadSensors_msg
 #define recystation_comm_SetChargePort_fields &recystation_comm_SetChargePort_msg
+#define recystation_comm_ClearEmergency_fields &recystation_comm_ClearEmergency_msg
+#define recystation_comm_SetTime_fields &recystation_comm_SetTime_msg
+#define recystation_comm_BacLevel_fields &recystation_comm_BacLevel_msg
 #define recystation_comm_SensorReport_fields &recystation_comm_SensorReport_msg
 #define recystation_comm_Alert_fields &recystation_comm_Alert_msg
 #define recystation_comm_Heartbeat_fields &recystation_comm_Heartbeat_msg
@@ -357,16 +535,19 @@ extern const pb_msgdesc_t recystation_comm_Heartbeat_msg;
 #define RECYSTATION_COMM_CONTRAT_PB_H_MAX_SIZE   recystation_comm_Envelope_size
 #define recystation_comm_Ack_size                73
 #define recystation_comm_Alert_size              69
+#define recystation_comm_BacLevel_size           7
+#define recystation_comm_ClearEmergency_size     0
 #define recystation_comm_Command_size            28
 #define recystation_comm_EmergencyStop_size      0
-#define recystation_comm_Envelope_size           104
-#define recystation_comm_Heartbeat_size          4
-#define recystation_comm_OpenTrapdoor_size       6
+#define recystation_comm_Envelope_size           116
+#define recystation_comm_Heartbeat_size          10
+#define recystation_comm_OpenTrapdoor_size       2
 #define recystation_comm_ReadSensors_size        0
-#define recystation_comm_SensorReport_size       23
+#define recystation_comm_SensorReport_size       85
 #define recystation_comm_SetChargePort_size      8
 #define recystation_comm_SetLed_size             24
-#define recystation_comm_StartCompaction_size    6
+#define recystation_comm_SetTime_size            11
+#define recystation_comm_StartCompaction_size    2
 
 #ifdef __cplusplus
 } /* extern "C" */

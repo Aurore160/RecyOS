@@ -5,13 +5,36 @@ syntax = "proto3";
 package recystation.comm;
 
 // ============================================================
+// CONTRAT v2 (6 novembre 2026) : version 3 bacs, sans pesée.
+// Règles générales :
+//  - En proto3, un champ absent vaut 0. La valeur 0 de chaque
+//    énumération est donc "UNSPECIFIED" et doit être REFUSÉE
+//    (ACK_INVALID) : un message vide ne doit jamais agir.
+//  - Ne jamais réutiliser un numéro de champ déjà publié.
+//  - Les anciens numéros supprimés sont déclarés "reserved".
+//  - Les valeurs numériques d'énumération de la v1 ont été
+//    décalées d'un cran (aucun déploiement n'existait).
+// ============================================================
+
+// Les trois bacs de la borne (bac métal supprimé).
+// "Non recyclable" = "Autres déchets" (même bac).
+enum Bac {
+  BAC_UNSPECIFIED     = 0; // refusé
+  BAC_PLASTIQUE       = 1;
+  BAC_PAPIER          = 2;
+  BAC_NON_RECYCLABLE  = 3;
+}
+
+// ============================================================
 // ENVELOPPE : le seul type de message qui circule réellement
 // sur le fil UART. Tout le reste voyage TOUJOURS à l'intérieur
 // d'une Envelope, jamais tout seul.
+// Trame sur le fil : 0x00 + COBS( Protobuf(Envelope) + CRC-16 ) + 0x00
+// (CRC-16 et taille maximale : voir RecyOS/transport.py).
 // ============================================================
 message Envelope {
-  // Numéro du contrat utilisé par l'émetteur. Sert à détecter
-  // un décalage trop important entre RPi et M5Stack.
+  // Version du contrat utilisée par l'émetteur (2 pour ce fichier).
+  // Sert à détecter un décalage entre RPi et M5Stack.
   uint32 protocol_version = 1;
 
   // Identifiant unique de CE message précis, pour pouvoir dire
@@ -24,8 +47,7 @@ message Envelope {
   uint32 session_id = 3;
 
   // Temps écoulé (ms) depuis le démarrage de l'émetteur.
-  // Décision actée : pas d'horloge réseau, chaque carte compte
-  // depuis SON propre démarrage.
+  // Pas d'horloge réseau : chaque carte compte depuis SON démarrage.
   uint64 device_uptime_ms = 4;
 
   // "oneof" = un seul de ces champs est rempli à la fois.
@@ -43,11 +65,12 @@ message Envelope {
 // et Alert (jamais pour SensorReport ou Heartbeat).
 // ============================================================
 enum AckStatus {
-  ACK_OK                  = 0; // commande/alerte acceptée
-  ACK_REFUSED_EMERGENCY   = 1; // refusée : arrêt d'urgence actif
-  ACK_INVALID             = 2; // champs incohérents/invalides
-  ACK_BUSY                = 3; // ressource déjà occupée
-  ACK_VERSION_UNSUPPORTED = 4; // protocol_version incompatible
+  ACK_UNSPECIFIED         = 0; // un Ack vide n'est PAS un succès
+  ACK_OK                  = 1; // commande/alerte acceptée
+  ACK_REFUSED_EMERGENCY   = 2; // refusée : arrêt d'urgence actif
+  ACK_INVALID             = 3; // champs incohérents/invalides
+  ACK_BUSY                = 4; // ressource déjà occupée
+  ACK_VERSION_UNSUPPORTED = 5; // protocol_version incompatible
 }
 
 message Ack {
@@ -57,9 +80,8 @@ message Ack {
   // Résultat de la commande/alerte acquittée.
   AckStatus status = 2;
 
-  // Texte optionnel, borné à 64 caractères côté applicatif
-  // (Protobuf ne limite pas la taille lui-même, c'est à nous
-  // de vérifier ça dans le code Python/C++ qui utilise ce champ).
+  // Texte optionnel, borné à 64 caractères (max_size dans
+  // contrat.options pour nanopb ; vérifié côté Python).
   string detail = 3;
 }
 
@@ -67,18 +89,22 @@ message Ack {
 // COMMAND : ordre envoyé du RPi vers le M5Stack.
 // ============================================================
 enum CommandType {
-  CMD_OPEN_TRAPDOOR    = 0;
-  CMD_START_COMPACTION = 1;
-  CMD_SET_LED          = 2;
-  CMD_EMERGENCY_STOP   = 3;
-  CMD_READ_SENSORS     = 4;
-  CMD_SET_CHARGE_PORT  = 5;
+  CMD_UNSPECIFIED      = 0; // refusé (ACK_INVALID)
+  CMD_OPEN_TRAPDOOR    = 1;
+  CMD_START_COMPACTION = 2; // Plastique et Non-recyclable seulement
+  CMD_SET_LED          = 3; // LED RGB interne du StamPLC (couleurs unies)
+  CMD_EMERGENCY_STOP   = 4;
+  CMD_READ_SENSORS     = 5;
+  CMD_SET_CHARGE_PORT  = 6; // DO 3 : convertisseurs USB
+  CMD_CLEAR_EMERGENCY  = 7; // réarmement demandé par le CM5 (décision P3)
+  CMD_SET_TIME         = 8; // règle l'heure du RTC au démarrage (décision P13)
+  // À ajouter après les décisions P6 et P7 : homing et déplacement
+  // du chariot (Nema 23), servo MG996R, arrêt des vérins, DO 1 et DO 2.
 }
 
 message Command {
-  // Redondant avec le "oneof params" ci-dessous, mais utile
-  // pour un traitement rapide côté récepteur sans avoir à
-  // inspecter lequel des "params" est rempli.
+  // Doit correspondre au "params" rempli. Si le type et le "params"
+  // se contredisent, ou si type == CMD_UNSPECIFIED : ACK_INVALID.
   CommandType type = 1;
 
   oneof params {
@@ -88,17 +114,19 @@ message Command {
     EmergencyStop   emergency_stop   = 13;
     ReadSensors     read_sensors     = 14;
     SetChargePort   set_charge_port  = 15;
+    ClearEmergency  clear_emergency  = 16;
+    SetTime         set_time         = 17;
   }
 }
 
 // --- Détails de chaque commande ---
 
 message OpenTrapdoor {
-  uint32 bac_id = 1; // identifiant du bac concerné
+  Bac bac = 1; // BAC_UNSPECIFIED refusé
 }
 
 message StartCompaction {
-  uint32 bac_id = 1;
+  Bac bac = 1; // BAC_PAPIER et BAC_UNSPECIFIED refusés (ACK_INVALID)
 }
 
 message SetLed {
@@ -114,8 +142,7 @@ message EmergencyStop {
 }
 
 message ReadSensors {
-  // Aucun champ nécessaire : demande une lecture immédiate,
-  // en dehors du cycle normal de 500 ms.
+  // Demande une lecture immédiate, hors cycle normal de 500 ms.
 }
 
 message SetChargePort {
@@ -123,19 +150,67 @@ message SetChargePort {
   bool   enabled = 2;
 }
 
+message ClearEmergency {
+  // Réarmement : accepté seulement si le bouton d'arrêt d'urgence
+  // est physiquement réarmé (DI1 revenu) ET que ce message arrive.
+}
+
+message SetTime {
+  uint64 epoch_seconds_utc = 1; // heure UTC envoyée par le CM5
+}
+
 // ============================================================
-// SENSOR REPORT : rapport capteurs, envoyé toutes les 500 ms
-// par le M5Stack. PAS d'ACK pour ce type de message (décision
-// actée : un rapport perdu est remplacé 500 ms plus tard).
-// Champs à compléter/affiner au module 1 selon le BOM réel,
-// en respectant la règle : jamais réutiliser un numéro existant.
+// SENSOR REPORT : rapport capteurs complet, toutes les 500 ms.
+// PAS d'ACK pour ce type de message.
+// Un capteur absent n'est PAS "0 %" : le bit correspondant de
+// valid_mask est à 0 et la valeur doit être ignorée.
 // ============================================================
+message BacLevel {
+  Bac    bac            = 1;
+  float  fill_level_pct = 2;
+}
+
+// Bits de SensorReport.valid_mask
+enum ValidBit {
+  VALID_NONE         = 0;
+  VALID_NIVEAU_PLASTIQUE      = 1;   // 1 << 0
+  VALID_NIVEAU_PAPIER         = 2;   // 1 << 1
+  VALID_NIVEAU_NON_RECYCLABLE = 4;   // 1 << 2
+  VALID_COURANT_BUS           = 8;   // 1 << 3
+  VALID_TENSION_BATTERIE      = 16;  // 1 << 4
+  VALID_TRAPPE                = 32;  // 1 << 5
+  VALID_PRESENCE              = 64;  // 1 << 6
+  VALID_TEMPERATURE           = 128; // 1 << 7
+  VALID_HUMIDITE              = 256; // 1 << 8
+  VALID_INCLINAISON           = 512; // 1 << 9
+}
+
 message SensorReport {
-  uint32 bac_id          = 1;
-  float  fill_level_pct  = 2;
-  float  motor_current_a = 3;
-  bool   trapdoor_closed = 4;
-  float  battery_voltage = 5;
+  // Anciens champs de la v1 (un seul bac) : numéros réservés.
+  reserved 1, 2, 3, 4, 5;
+
+  // Niveau de remplissage des 3 bacs (jusqu'à 3 entrées).
+  repeated BacLevel levels = 6;
+
+  // Courant du BUS (INA226 du StamPLC), pas par moteur (décision P8
+  // à confirmer : courant par moteur non mesuré en V1).
+  float  bus_current_a      = 7;
+  float  battery_voltage_v  = 8;
+  bool   trapdoor_closed    = 9;
+  bool   emergency_active   = 10;  // état de DI1 / verrou d'arrêt d'urgence
+  bool   presence_detected  = 11;  // RCWL-0516 (PoC) ou cellule photoélectrique
+  float  temperature_c      = 12;  // BME680
+  float  humidity_pct       = 13;  // BME680
+  float  tilt_deg           = 14;  // MPU6050
+
+  // Bits d'état : DI1..DI8 (bit 0 = DI1).
+  uint32 di_state_mask      = 15;
+  // Bits des ports de charge USB (DO 3 : bit 0).
+  uint32 charge_port_mask   = 16;
+  // Drapeaux de défaut (bits à définir avec les alertes, décision P10).
+  uint32 fault_flags        = 17;
+  // Bits ValidBit : quelles mesures ci-dessus sont fiables.
+  uint32 valid_mask         = 18;
 }
 
 // ============================================================
@@ -143,9 +218,10 @@ message SensorReport {
 // d'attente du cycle 500 ms). ACK obligatoire.
 // ============================================================
 enum AlertSeverity {
-  INFO     = 0;
-  WARNING  = 1;
-  CRITICAL = 2;
+  SEVERITY_UNSPECIFIED = 0; // refusé
+  INFO                 = 1;
+  WARNING              = 2;
+  CRITICAL             = 3;
 }
 
 enum AlertCode {
@@ -159,7 +235,7 @@ enum AlertCode {
 message Alert {
   AlertSeverity severity = 1;
   AlertCode     code     = 2;
-  string        detail   = 3; // borné à 64 caractères, côté applicatif
+  string        detail   = 3; // borné à 64 caractères
 }
 
 // ============================================================
@@ -168,6 +244,8 @@ message Alert {
 // Health Monitor (module 3) qui déclenche l'état sûr.
 // ============================================================
 message Heartbeat {
-  bool emergency_active = 1;
-  bool self_test_ok     = 2;
+  bool   emergency_active = 1;
+  bool   self_test_ok     = 2;
+  // Version du firmware du StamPLC (ex. 0x00010002 = 1.0.2).
+  uint32 firmware_version = 3;
 }

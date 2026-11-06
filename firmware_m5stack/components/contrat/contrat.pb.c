@@ -33,6 +33,15 @@ PB_BIND(recystation_comm_ReadSensors, recystation_comm_ReadSensors, AUTO)
 PB_BIND(recystation_comm_SetChargePort, recystation_comm_SetChargePort, AUTO)
 
 
+PB_BIND(recystation_comm_ClearEmergency, recystation_comm_ClearEmergency, AUTO)
+
+
+PB_BIND(recystation_comm_SetTime, recystation_comm_SetTime, AUTO)
+
+
+PB_BIND(recystation_comm_BacLevel, recystation_comm_BacLevel, AUTO)
+
+
 PB_BIND(recystation_comm_SensorReport, recystation_comm_SensorReport, AUTO)
 
 
@@ -40,6 +49,10 @@ PB_BIND(recystation_comm_Alert, recystation_comm_Alert, AUTO)
 
 
 PB_BIND(recystation_comm_Heartbeat, recystation_comm_Heartbeat, AUTO)
+
+
+
+
 
 
 
