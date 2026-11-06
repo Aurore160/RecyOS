@@ -1,5 +1,6 @@
 # RecyOS — décisions firmware (6 novembre 2026)
 
+Décisions du CTO du 06/11 : P4, P8, P14 et PCA9548A tranchés.
 Source : « RecyOS – points à trancher et ajustements » (16 points) et « Prérequis firmware ».
 Légende : **Proposé** = recommandation appliquée ou prête, à valider par le CTO. **À trancher** = décision du CTO, avec ce qu'il faut pour décider.
 
@@ -10,11 +11,11 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 | P1 | Broche de reset du CM5 | Proposé | GPIO.EXT broche 10 en sortie (la 9 lit les JSN-SR04T). Vérifier au banc le niveau 3,3 V côté entrée de reset du CM5. Si le déclencheur I2C des JSN échoue au banc, la broche 10 est reprise et ce point est à rouvrir. |
 | P2 | Ligne d'arrêt d'urgence CM5 ↔ StamPLC | Proposé | Pas de broche dédiée en V1 : arrêt d'urgence = DI1 (contact NF) + commande UART `CMD_EMERGENCY_STOP`. À écrire dans la spec. |
 | P3 | Comportement de l'arrêt d'urgence | Proposé (appliqué au contrat) | Arrêt verrouillé ; DO4 coupe la puissance ; redémarrage seulement après réarmement physique de DI1 ET `CMD_CLEAR_EMERGENCY` du CM5. |
-| P4 | Mode dégradé si le CM5 ne répond plus | **À trancher** | Le StamPLC arrête les actionneurs, affiche « Hors service » sur son LCD 1,14″ (dans le coffret), reset le CM5 après 5 s puis attend. Conséquence : le citoyen ne voit rien sur le grand écran (piloté par le CM5). Décision : accepter, ou prévoir autre chose. Corriger aussi le texte du rapport BOM. |
+| P4 | Mode dégradé si le CM5 ne répond plus | **Décidé le 06/11 : accepté** | Le StamPLC arrête les actionneurs, affiche « Hors service » sur son LCD 1,14″ (dans le coffret), reset le CM5 après 5 s puis attend. Conséquence : le citoyen ne voit rien sur le grand écran (piloté par le CM5). Le CTO accepte. Le texte « écran 12″ allumé avec Hors service » n'a pas été retrouvé dans les documents actuels (BOM v8.0, rapport BOM v7.4, mapping v1.3) : il vient d'une ancienne version. |
 | P5 | Montage du Nema 23 | Proposé | Un seul firmware, réglages de configuration (polarité EN, fréquence STEP max). Adaptation 3,3 V → 5 V du DM542 à valider au banc. |
 | P6 | Séquence mécanique de tri | **À trancher** | Coder seulement le homing (DI6) et le déplacement en pas. Il faut du concepteur de la trappe : rôle exact du servo MG996R (angles, butées), ratio pas par mm (pas de la transmission), course utile validée (≈ 92 cm sur rail de 1 050 mm), vitesse max. |
 | P7 | Fin de course et blocage des vérins | **À trancher** | Hypothèse : fins de course internes (code « Signal output » 0). Il faut du fournisseur : le YH-523D a-t-il des fins de course internes ? Quel code « Signal output » ? Courant à rotor bloqué ? À défaut, test au banc à la réception. En attendant : durée maximale par cycle (paramètre) + courant du bus. |
-| P8 | Courant par moteur | **À trancher** | L'INA226 mesure le bus global. Le courant par moteur est-il exigé en V1 ? Sinon : champ renommé `bus_current_a` (déjà fait dans le contrat v2, à confirmer). |
+| P8 | Courant par moteur | **Décidé le 06/11 : courant du bus** | Pas de courant par moteur en V1 (INA226 = bus global). Champ `bus_current_a` dans le contrat v2. |
 
 ## B. Contrat de communication (appliqué dans `contrat.proto` v2)
 
@@ -30,7 +31,7 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 
 | Réf. | Sujet | Statut | Décision / ce qu'il faut |
 |---|---|---|---|
-| P14 | Où vit le firmware | **À trancher** | Même dépôt, un seul `contrat.proto`. Actuellement le dossier s'appelle `firmware_m5stack/` ; le rapport suggère `firmware/`. |
+| P14 | Où vit le firmware | **Décidé le 06/11 : `firmware_m5stack/`** | Même dépôt, un seul `contrat.proto`. Le dossier garde le nom `firmware_m5stack/`. |
 | P15 | Mise à jour du firmware | Proposé | V1 : table de partitions avec double partition OTA (flash 8 Mo) ; mise à jour par le CM5 via l'UART repoussée après le banc. |
 | P16 | Calendrier | **À trancher** | La date du 6 novembre est atteinte. À fixer après les décisions P4, P6, P7, P10. |
 
@@ -38,7 +39,7 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 
 | Sujet | Qui décide | Ce qu'il faut |
 |---|---|---|
-| PCA9548A (BOM ×2, TD-01 ×2, spec ×1) | CTO | Choisir : 0 en PoC et 1 en V1, 1 + 1 de réserve, ou 2. Un seul module suffit pour 3 ToF. |
+| PCA9548A (BOM ×2, TD-01 ×2, spec ×1) | CTO | **Décidé le 06/11 : 0 en PoC, 1 en V1.** BOM v8.0, TD-01, mapping v1.3 et rapports alignés (la spec disait déjà ×1). |
 | Tension max de la MKS SERVO57A (12-24 V, bus à 25,6 V nominal, ≈ 29 V en charge) | Fournisseur / CTO | Question au fournisseur avant toute mise sous tension. Si pas de réponse : alimenter la MKS par un convertisseur 24 V régulé ou utiliser le montage de secours DM542. |
 | Seuils et machine à états (60/70/75/80/95 %, cycles max) | CTO + CEO | Une page : seuil de compactage, alerte orange, alerte rouge, refus de dépôt, cycles maximum. |
 | Catégories et règle de crédit sans pesée | CEO | Écrit de la CEO sur les 3 bacs et le papier. En attendant : dépôt = catégorie + horodatage, sans poids. |
