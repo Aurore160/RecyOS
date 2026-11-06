@@ -25,3 +25,10 @@ Prérequis : ESP-IDF 5.x installé et activé (`export.bat` / `export.sh`).
 - Le `.proto` est la source unique : le modifier seulement dans `ContratCM5RPI/`, puis lancer `tools/gen_contrat.sh`.
 - Jamais réutiliser un numéro de champ existant dans le `.proto`.
 - Broches et adresses : voir la spec StamPLC v3.2 et le mapping PoC v1.3 (espace CTO). Aucune broche n'est encore codée ici.
+
+## Test des trames sur PC (sans ESP-IDF)
+```
+cd test
+gcc -Wall -I../components/transport/include test_trame.c ../components/transport/trame.c -o test_trame && ./test_trame
+```
+Les vecteurs viennent de `../ContratCM5RPI/vecteurs_trame.json` (mêmes octets que Python).

@@ -1,0 +1,29 @@
+{
+  "description": "Vecteurs communs Python / C. CRC-16/CCITT-FALSE, poids fort d'abord, puis COBS, entour\u00e9 de 0x00.",
+  "crc16": [
+    {
+      "entree_hex": "313233343536373839",
+      "crc": "0x29B1"
+    },
+    {
+      "entree_hex": "",
+      "crc": "0xFFFF"
+    },
+    {
+      "entree_hex": "00",
+      "crc": "0xe1f0"
+    }
+  ],
+  "trames": [
+    {
+      "nom": "heartbeat",
+      "proto_hex": "0802100118d20920d00f7206100118808004",
+      "trame_hex": "00150802100118d20920d00f7206100118808004be5b00"
+    },
+    {
+      "nom": "commande_ouvrir_papier",
+      "proto_hex": "0802100718635206080152020802",
+      "trame_hex": "00110802100718635206080152020802c0ba00"
+    }
+  ]
+}
