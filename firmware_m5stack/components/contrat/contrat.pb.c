@@ -15,10 +15,25 @@ PB_BIND(recystation_comm_Ack, recystation_comm_Ack, AUTO)
 PB_BIND(recystation_comm_Command, recystation_comm_Command, AUTO)
 
 
-PB_BIND(recystation_comm_OpenTrapdoor, recystation_comm_OpenTrapdoor, AUTO)
-
-
 PB_BIND(recystation_comm_StartCompaction, recystation_comm_StartCompaction, AUTO)
+
+
+PB_BIND(recystation_comm_SortWaste, recystation_comm_SortWaste, AUTO)
+
+
+PB_BIND(recystation_comm_Home, recystation_comm_Home, AUTO)
+
+
+PB_BIND(recystation_comm_SetMode, recystation_comm_SetMode, AUTO)
+
+
+PB_BIND(recystation_comm_TestActuator, recystation_comm_TestActuator, AUTO)
+
+
+PB_BIND(recystation_comm_SetOutput, recystation_comm_SetOutput, AUTO)
+
+
+PB_BIND(recystation_comm_AbortCycle, recystation_comm_AbortCycle, AUTO)
 
 
 PB_BIND(recystation_comm_SetLed, recystation_comm_SetLed, AUTO)
@@ -45,10 +60,27 @@ PB_BIND(recystation_comm_BacLevel, recystation_comm_BacLevel, AUTO)
 PB_BIND(recystation_comm_SensorReport, recystation_comm_SensorReport, AUTO)
 
 
+PB_BIND(recystation_comm_ActivityStatus, recystation_comm_ActivityStatus, AUTO)
+
+
 PB_BIND(recystation_comm_Alert, recystation_comm_Alert, AUTO)
 
 
 PB_BIND(recystation_comm_Heartbeat, recystation_comm_Heartbeat, AUTO)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

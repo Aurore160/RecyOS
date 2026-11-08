@@ -99,7 +99,7 @@ class TestReception(unittest.TestCase):
 
     def test_envoi(self):
         liaison = LiaisonMemoire([])
-        env = contrat_pb2.Envelope(protocol_version=2, message_id=1,
+        env = contrat_pb2.Envelope(protocol_version=3, message_id=1,
                                    heartbeat=contrat_pb2.Heartbeat(self_test_ok=True))
         TransportTrames(liaison).envoyer(env)
         self.assertEqual(liaison.ecrits[0], 0)

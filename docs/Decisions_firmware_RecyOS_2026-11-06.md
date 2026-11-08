@@ -17,15 +17,15 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 | P7 | Fin de course et blocage des vérins | **Décidé le 06/11** | Fins de course internes aux YH-523D (hypothèse confirmée par le CTO) : DI2 à DI5 libres, un seul M18 pour le homing. Protection : durée maximale par cycle (paramètre) + courant du bus. Courant à rotor bloqué à mesurer au banc. |
 | P8 | Courant par moteur | **Décidé le 06/11 : courant du bus** | Pas de courant par moteur en V1 (INA226 = bus global). Champ `bus_current_a` dans le contrat v2. |
 
-## B. Contrat de communication (appliqué dans `contrat.proto` v2)
+## B. Contrat de communication (appliqué dans `contrat.proto` v3)
 
 | Réf. | Sujet | Statut | Décision |
 |---|---|---|---|
-| P9 | Cadrage UART | Proposé | Garder COBS + 0x00 ; ajouter un CRC-16 par trame des deux côtés et une taille maximale (le message le plus gros fait 116 octets ; plafond à fixer, par ex. 256). **Pas encore implémenté** dans `transport.py`. |
-| P10 | Contenu du rapport capteurs | Proposé (appliqué) | Rapport complet à 500 ms : 3 bacs, courant du bus, tension batterie, trappe, arrêt d'urgence, présence, température, humidité, inclinaison, DI, ports USB, drapeaux de défaut, `valid_mask` (un capteur absent n'est pas « 0 % »). À valider champ par champ. |
+| P9 | Cadrage UART | **Validé le 08/11** | Garder COBS + 0x00 ; ajouter un CRC-16 par trame des deux côtés et une taille maximale (le message le plus gros fait 116 octets ; plafond à fixer, par ex. 256). **Pas encore implémenté** dans `transport.py`. |
+| P10 | Contenu du rapport capteurs | **Validé le 08/11** (appliqué) | Rapport complet à 500 ms : 3 bacs, courant du bus, tension batterie, trappe, arrêt d'urgence, présence, température, humidité, inclinaison, DI, ports USB, drapeaux de défaut, `valid_mask` (un capteur absent n'est pas « 0 % »). À valider champ par champ. |
 | P11 | Capteurs de niveau en PoC | Proposé | Couche capteur de niveau à deux pilotes (JSN-SR04T pour le PoC, VL53L0X pour la V1) ; ne coder que le JSN-SR04T. Cycle ultrason bac par bac, pas « 10 ms ». |
-| P12 | Identifiants des bacs | Proposé (appliqué) | Énumération `BAC_PLASTIQUE`, `BAC_PAPIER`, `BAC_NON_RECYCLABLE` ; la compaction du papier est refusée (`ACK_INVALID`). |
-| P13 | Horodatage | Proposé (appliqué) | Temps de fonctionnement dans l'enveloppe ; le CM5 envoie l'heure au démarrage (`CMD_SET_TIME`) pour régler le RTC. |
+| P12 | Identifiants des bacs | **Validé le 08/11** (appliqué) | Énumération `BAC_PLASTIQUE`, `BAC_PAPIER`, `BAC_NON_RECYCLABLE` ; la compaction du papier est refusée (`ACK_INVALID`). |
+| P13 | Horodatage | **Validé le 08/11** (appliqué) | Temps de fonctionnement dans l'enveloppe ; le CM5 envoie l'heure au démarrage (`CMD_SET_TIME`) pour régler le RTC. |
 
 ## C. Organisation
 
@@ -51,3 +51,8 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 - `contrat_pb2.py` et le code nanopb régénérés.
 - `faux_mstack.py` : `session_id` tiré au sort, compteur d'Ack propre, refus des commandes invalides ; `test_client_recyos.py` adapté.
 - Pas encore fait : CRC-16 (P9), `transport.py` par blocs et série, `.gitignore`, README, paquets Python, nettoyage de `Test/`, commandes du chariot et des vérins (P6, P7).
+
+## Contrat v3 (08/11)
+- `protocol_version` = 3. Ajouts : commandes `SORT_WASTE`, `HOME`, `SET_MODE`, `TEST_ACTUATOR`, `SET_OUTPUT`, `ABORT_CYCLE` ; message `ActivityStatus` (mode, référencé, états de tri et de compactage, résultats) ; statuts `ACK_REFUSED_MODE` et `ACK_REFUSED_NOT_HOMED` ; alertes `MOTOR_FAULT`, `CYCLE_TIMEOUT`, `NOT_HOMED`, `DEGRADED_MODE` ; heartbeat bidirectionnel (source, mode, compteur de resets du CM5).
+- `CMD_OPEN_TRAPDOOR` retirée (numéro réservé). Principe : le CM5 décide quand, le StamPLC décide comment et refuse.
+- Simulateur de référence : `ContratCM5RPI/faux_m5stack.py` (classe `EtatSimule`), tests dans `test_regles_v3.py`.

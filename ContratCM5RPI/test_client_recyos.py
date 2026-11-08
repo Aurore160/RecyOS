@@ -57,7 +57,7 @@ def main() -> None:
 
     print("[RecyOS test] Envoi d'une Command de test (CMD_READ_SENSORS)...")
     commande = contrat_pb2.Envelope(
-        protocol_version=2,
+        protocol_version=3,
         message_id=1,
         session_id=99,
         command=contrat_pb2.Command(

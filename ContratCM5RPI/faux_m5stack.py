@@ -20,7 +20,7 @@ from RecyOS.transport import envoyer_message, recevoir_message
 
 HOTE = "127.0.0.1"
 PORT = 9000
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 3
 
 
 def tache_envoi_periodique(sock: socket.socket) -> None:
@@ -76,6 +76,8 @@ def tache_envoi_periodique(sock: socket.socket) -> None:
                     emergency_active=False,
                     self_test_ok=True,
                     firmware_version=0x00010000,
+                    source=contrat_pb2.HEARTBEAT_SOURCE_STAMPLC,
+                    mode=_ETAT.mode,
                 ),
             )
             prochain_message_id += 1
@@ -85,14 +87,13 @@ def tache_envoi_periodique(sock: socket.socket) -> None:
         time.sleep(0.05)  # évite de saturer le CPU en boucle serrée
 
 
-def statut_pour(commande: "contrat_pb2.Command") -> int:
-    """Règles du contrat v2 : une commande vide, incohérente ou interdite est refusée."""
-    if commande.type == contrat_pb2.CMD_UNSPECIFIED:
-        return contrat_pb2.ACK_INVALID
-    if commande.WhichOneof("params") is None and commande.type != contrat_pb2.CMD_CLEAR_EMERGENCY:
-        return contrat_pb2.ACK_INVALID
-    attendu = {
-        contrat_pb2.CMD_OPEN_TRAPDOOR: "open_trapdoor",
+class EtatSimule:
+    """État minimal du StamPLC simulé : applique les règles de refus du contrat v3.
+
+    Principe : le CM5 décide QUAND, le StamPLC décide COMMENT et refuse.
+    """
+
+    ATTENDU = {
         contrat_pb2.CMD_START_COMPACTION: "start_compaction",
         contrat_pb2.CMD_SET_LED: "set_led",
         contrat_pb2.CMD_EMERGENCY_STOP: "emergency_stop",
@@ -100,15 +101,88 @@ def statut_pour(commande: "contrat_pb2.Command") -> int:
         contrat_pb2.CMD_SET_CHARGE_PORT: "set_charge_port",
         contrat_pb2.CMD_CLEAR_EMERGENCY: "clear_emergency",
         contrat_pb2.CMD_SET_TIME: "set_time",
+        contrat_pb2.CMD_SORT_WASTE: "sort_waste",
+        contrat_pb2.CMD_HOME: "home",
+        contrat_pb2.CMD_SET_MODE: "set_mode",
+        contrat_pb2.CMD_TEST_ACTUATOR: "test_actuator",
+        contrat_pb2.CMD_SET_OUTPUT: "set_output",
+        contrat_pb2.CMD_ABORT_CYCLE: "abort_cycle",
     }
-    if commande.WhichOneof("params") != attendu.get(commande.type):
-        return contrat_pb2.ACK_INVALID
-    if commande.type == contrat_pb2.CMD_OPEN_TRAPDOOR and commande.open_trapdoor.bac == contrat_pb2.BAC_UNSPECIFIED:
-        return contrat_pb2.ACK_INVALID
-    if commande.type == contrat_pb2.CMD_START_COMPACTION and commande.start_compaction.bac in (
-            contrat_pb2.BAC_UNSPECIFIED, contrat_pb2.BAC_PAPIER):
-        return contrat_pb2.ACK_INVALID  # le bac Papier n'est pas compacté
-    return contrat_pb2.ACK_OK
+
+    def __init__(self) -> None:
+        self.mode = contrat_pb2.MODE_NORMAL
+        self.homed = False
+        self.urgence = False
+        self.cycle_en_cours = False
+
+    def appliquer(self, c: "contrat_pb2.Command") -> int:
+        ack = contrat_pb2
+        if c.type == ack.CMD_UNSPECIFIED:
+            return ack.ACK_INVALID
+        if c.WhichOneof("params") != self.ATTENDU.get(c.type):
+            # seules les commandes sans paramètre utile peuvent arriver sans oneof
+            return ack.ACK_INVALID
+        t = c.type
+        # arrêt d'urgence : toujours accepté ; le reste est refusé tant qu'il est actif
+        if t == ack.CMD_EMERGENCY_STOP:
+            self.urgence = True
+            self.cycle_en_cours = False
+            self.homed = False  # un arrêt impose un nouveau référencement
+            return ack.ACK_OK
+        if t == ack.CMD_CLEAR_EMERGENCY:
+            self.urgence = False
+            return ack.ACK_OK
+        if t in (ack.CMD_READ_SENSORS, ack.CMD_SET_TIME, ack.CMD_SET_LED):
+            return ack.ACK_OK
+        if self.urgence:
+            return ack.ACK_REFUSED_EMERGENCY
+        if t == ack.CMD_SET_MODE:
+            m = c.set_mode.mode
+            if m == ack.MODE_UNSPECIFIED:
+                return ack.ACK_INVALID
+            if self.cycle_en_cours:
+                return ack.ACK_BUSY
+            self.mode = m
+            return ack.ACK_OK
+        if t == ack.CMD_ABORT_CYCLE:
+            self.cycle_en_cours = False
+            return ack.ACK_OK
+        if t == ack.CMD_SET_CHARGE_PORT:
+            return ack.ACK_OK
+        if t == ack.CMD_HOME:
+            if self.cycle_en_cours:
+                return ack.ACK_BUSY
+            self.homed = True
+            return ack.ACK_OK
+        if t in (ack.CMD_SET_OUTPUT, ack.CMD_TEST_ACTUATOR):
+            if self.mode != ack.MODE_MAINTENANCE:
+                return ack.ACK_REFUSED_MODE
+            if t == ack.CMD_TEST_ACTUATOR and c.test_actuator.actuator == ack.ACTUATOR_UNSPECIFIED:
+                return ack.ACK_INVALID
+            if t == ack.CMD_SET_OUTPUT and c.set_output.output == ack.OUTPUT_UNSPECIFIED:
+                return ack.ACK_INVALID
+            return ack.ACK_OK
+        # SORT_WASTE et START_COMPACTION : mode normal, référencé, libre
+        if t == ack.CMD_SORT_WASTE and c.sort_waste.bac == ack.BAC_UNSPECIFIED:
+            return ack.ACK_INVALID
+        if t == ack.CMD_START_COMPACTION and c.start_compaction.bac in (
+                ack.BAC_UNSPECIFIED, ack.BAC_PAPIER):
+            return ack.ACK_INVALID  # le bac Papier n'est pas compacté
+        if self.mode != ack.MODE_NORMAL:
+            return ack.ACK_REFUSED_MODE
+        if not self.homed:
+            return ack.ACK_REFUSED_NOT_HOMED
+        if self.cycle_en_cours:
+            return ack.ACK_BUSY
+        return ack.ACK_OK
+
+
+_ETAT = EtatSimule()
+
+
+def statut_pour(commande: "contrat_pb2.Command") -> int:
+    """Compatibilité : applique la commande à l'état simulé global."""
+    return _ETAT.appliquer(commande)
 
 
 def tache_reception(sock: socket.socket) -> None:
