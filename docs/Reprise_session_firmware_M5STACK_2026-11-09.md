@@ -62,3 +62,22 @@ Derniers commits : 7306a98 (spec CM5 v0.3), c20150c (v0.2), 589d7d4 (T7 OTA), a9
 
 ## 10. Achats (pour mémoire)
 La BOM v8.2 et les listes « restant à acheter » (complète, composants électriques, capteurs et drivers) sont dans `06_HARDWARE/Achats` et `09_VALIDATIONS`. Les barres LED sont déjà achetées (information du CTO, quantité à confirmer). Panneau solaire, MPPT et batteries sont reportables.
+
+## 11. Outils, commandes de test et manière de travailler avec le CTO
+**Commandes (depuis la racine du dépôt RecyOS)**
+- Tests Python du contrat : `cd ContratCM5RPI && python3 test_regles_v3.py` (8 tests, règles de refus du simulateur `faux_m5stack.py`) ; tests du transport : `PYTHONPATH=. python3 -m unittest discover Test` (nécessite `pip install cobs protobuf`).
+- Tests C sur PC (sans ESP-IDF) : `test_trame.c`, `test_tri.c`, `test_niveau.c` (voir `firmware_m5stack/test/README.md` et §7).
+- Régénérer le code du contrat : `firmware_m5stack/tools/gen_contrat.sh` (nanopb 0.4.9.1 ; `pip install nanopb grpcio-tools`). Après toute modification du `.proto` : régénérer, puis relancer les tests Python et C.
+- Compilation avec les en-têtes nanopb hors ESP-IDF : les `pb*.h` de nanopb 0.4.9.1 se téléchargent depuis github (raw.githubusercontent.com/nanopb/nanopb/0.4.9.1) pour un contrôle `gcc` sur PC.
+
+**Environnement de Claude**
+- Claude travaille dans un conteneur Linux ; les fichiers du CTO (Windows, `B:\...`) passent par le pont d'appareil : `device_bash` (shell Linux sur ses dossiers connectés, `$HOME/mnt/00_EspaceCTO/...`), `device_stage_files` / `device_commit_files` pour copier entre le conteneur et son disque. Les fichiers créés dans `/tmp` du conteneur ne sont pas visibles sur l'appareil et inversement. Le pont refuse de supprimer : archiver avec `mv`.
+- Documents Word : python-docx ; PDF : `soffice --headless --convert-to pdf`. Mise en forme des documents du CTO (questions ouvertes, spécification CM5) : A4 paysage, marges 1,5 cm, Calibri 10, titres et en-têtes de tableaux en vert `006633`, titres « Heading 1 », tableaux TableGrid à en-tête répété ; modèle : `09_VALIDATIONS/Questions_ouvertes_et_validateurs_2026-11-09.docx`.
+- Envoyer un fichier au CTO dans la conversation : copie vers l'espace de sortie puis `SendUserFile` ; il demande parfois explicitement « ne me fournis rien ici » (alors ranger seulement dans son espace) ou « en format Word seulement ».
+
+**Manière de travailler**
+- Langue : français. Le CTO décide un point à la fois (« prenons le T8 ») ; lui proposer une recommandation claire, il répond souvent « je suis d'accord » ; ne pas décider à sa place les points qui lui appartiennent.
+- Il veut être **prévenu** quand un point CTO devient bloquant (T13 à T16) et **rappelé** pour la compilation dès qu'ESP-IDF est prêt.
+- Les valeurs supposées sont signalées comme telles dans les documents et restent configurables ; elles ne bloquent personne.
+- Le CTO relit et modifie lui-même les documents (Word) : toujours repartir de sa dernière version, jamais de celle de Claude.
+- Documents sensibles du suivi : numérotation des questions — C = CEO, M = concepteur de la trappe, T = CTO, B = backend ; P1 à P16 = points du firmware dans `docs/Decisions_firmware_RecyOS_2026-11-06.md` ; D/E/T/X = lignes du fichier d'écarts API.
