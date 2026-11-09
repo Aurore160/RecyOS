@@ -4,7 +4,7 @@ Document de passation pour la session « Firmware M5STACK RecyOS ». Il résume 
 
 ## 1. Rôle et personnes
 - Emmanuel Gilwandji, CTO de BilengeTech SAS (projet Recystation, déploiement à Kinshasa, RDC), conçoit **uniquement** le firmware du StamPLC M5Stack K141 (ESP32-S3FN8, ESP-IDF, 8 Mo de flash). Il fait lui-même les `git push`.
-- Aurore N'sasi (CEO) développe le logiciel du CM5 (RecyOS) et l'IA. Elle reçoit `Specification_CM5_RecyOS_v0.3` (sans mot d'accompagnement, envoyée par le CTO).
+- Aurore N'sasi (CEO) développe le logiciel du CM5 (RecyOS) et l'IA. Elle reçoit `Specification_CM5_RecyOS_v0.4` (sans mot d'accompagnement, envoyée par le CTO).
 - Les développeurs backend reçoivent le fichier d'écarts API/backend et leurs questions B1 à B9. Un concepteur de la trappe doit fournir les paramètres mécaniques (M1 à M3).
 - Claude n'envoie rien aux développeurs ni à la CEO : le CTO envoie lui-même.
 
@@ -25,7 +25,7 @@ Document de passation pour la session « Firmware M5STACK RecyOS ». Il résume 
 Espace CTO : `B:\Gilw_Emmanuel\BILENGE_TECH\00_EspaceCTO\RECYSTATION-TECH`
 - Dépôt firmware : `07_ENGINEERING/Firmware/RecyOS` (github.com/Aurore160/RecyOS, branche `M5stack`, projet ESP-IDF dans `firmware_m5stack/`).
 - Contrat : `ContratCM5RPI/contrat.proto` (v3), `faux_m5stack.py` (simulateur à état), `test_regles_v3.py`, `Test/test_transport.py`.
-- Décisions : `docs/Decisions_firmware_RecyOS_2026-11-06.md` ; spécification CM5 : `docs/Specification_CM5_RecyOS_v0.3.md` (+ docx/pdf dans `02_SPECIFICATIONS/CM5`).
+- Décisions : `docs/Decisions_firmware_RecyOS_2026-11-06.md` ; spécification CM5 : `docs/Specification_CM5_RecyOS_v0.4.md` (+ docx/pdf dans `02_SPECIFICATIONS/CM5`).
 - BOM : `09_VALIDATIONS/BOM_RecyStation_v8.2.xlsx` ; mapping broches : `09_VALIDATIONS/Mapping_PoC_RecyStation_v1.3.xlsx` ; achats : `06_HARDWARE/Achats` (listes « restant à acheter », lot CEO) ; stabilisateur 24 V : `06_HARDWARE/Alimentation_24V_MKS`.
 - Questions ouvertes : `09_VALIDATIONS/Questions_ouvertes_et_validateurs_2026-11-09` (et extraits CEO / développeurs backend) ; copies prêtes à envoyer : `08_MANAGEMENT/Envois`.
 - Fichier d'écarts API/backend : `02_SPECIFICATIONS/API/Ecarts_API_Backend_vs_decisions_v0.9` (section « D. Documents » retirée ; question B9 à revoir par le CTO).
@@ -63,7 +63,7 @@ Derniers commits : 7306a98 (spec CM5 v0.3), c20150c (v0.2), 589d7d4 (T7 OTA), a9
 - CEO : C1 à C4 et C6 (kilos et CO₂ sans pesée, seuils du papier, pureté, validation écrite du papier, calendrier du firmware).
 - Concepteur de la trappe : M1 à M3.
 - Développeurs backend : B1 à B9 ; B9 renvoie à la section retirée du fichier d'écarts (CTO à revoir).
-- Valeurs supposées en attendant : alertes 70/80/95 % (papier 70/85/95 supposé), compactage à 70 %, délai de démarrage du CM5 90 s, vidage 30 min, maintenance 15 min d'inactivité.
+- Valeurs supposées en attendant : alertes 70/80/95 % pour les bacs compactés et compactage à 80 % (décisions de la CEO, vérifiées dans le fichier d'écarts T6 ; alerte rouge si > 70 % après compactage), papier 70/85/95 % supposé, délai de démarrage du CM5 90 s, vidage 30 min, maintenance 15 min d'inactivité.
 
 ## 10. Achats (pour mémoire)
 La BOM v8.2 et les listes « restant à acheter » (complète, composants électriques, capteurs et drivers) sont dans `06_HARDWARE/Achats` et `09_VALIDATIONS`. Les barres LED sont déjà achetées (information du CTO, quantité à confirmer). Panneau solaire, MPPT et batteries sont reportables.

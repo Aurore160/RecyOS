@@ -41,7 +41,7 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 |---|---|---|
 | PCA9548A (BOM ×2, TD-01 ×2, spec ×1) | CTO | **Décidé le 06/11 : 0 en PoC, 1 en V1.** BOM v8.0, TD-01, mapping v1.3 et rapports alignés (la spec disait déjà ×1). |
 | Tension max de la MKS SERVO57A (12-24 V, bus à 25,6 V nominal, ≈ 29 V en charge) | CTO | **Décidé le 06/11** : le CTO conçoit un stabilisateur 24 V avant la réception du moteur ; à valider au banc avant mise sous tension du Nema 23 (repli : DM542). **Précisé le 08/11 (T8)** : stabilisateur maison autour d'un LM2596-ADJ réglé à 23,4 V (charge maximale 2,5 A, MKS réglé d'abord à 1,5 A), module DC-DC du commerce en repli si les essais au banc échouent ; schéma et liste d'achat dans `06_HARDWARE/Alimentation_24V_MKS`. |
-| Seuils et machine à états (60/70/75/80/95 %, cycles max) | CTO + CEO | Une page : seuil de compactage, alerte orange, alerte rouge, refus de dépôt, cycles maximum. |
+| Seuils et machine à états (60/70/75/80/95 %, cycles max) | CTO + CEO | **Décidé par la CEO (réponse du 17/10, reprise dans le fichier d'écarts, ligne T6, et vérifiée le 09/11)** : alertes au videur à 70, 80 et 95 % pour les bacs compactés ; compactage à 80 % ; 3 cycles maximum ; alerte rouge si le niveau reste au-dessus de 70 % après compactage ; aucun refus de dépôt. Papier : valeurs supposées 70/85/95 %, à confirmer. |
 | Catégories et règle de crédit sans pesée | CEO | Écrit de la CEO sur les 3 bacs et le papier. En attendant : dépôt = catégorie + horodatage, sans poids. |
 | MQTT et backend | CTO | Une page : Mosquitto, Node.js / Express, topics, QoS, télémétrie, authentification. Sans effet sur le firmware du StamPLC. |
 
