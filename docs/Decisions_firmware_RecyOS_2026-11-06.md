@@ -72,3 +72,7 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 - Mise à jour par le CM5 : après le banc. Elle demandera des messages de transfert (début, blocs, fin avec SHA-256) à ajouter au contrat ; seulement en mode maintenance, sans cycle en cours, arrêt d'urgence prioritaire (refus `ACK_REFUSED_MODE` sinon). Les numéros de champ à utiliser seront choisis à ce moment, sans réutiliser un numéro existant.
 - Signature des firmwares (secure boot) et chiffrement de la flash : hors V1, irréversible, à décider avant un déploiement à grande échelle.
 - Version : format `0xMMmmpppp` déjà utilisé dans le heartbeat (0x00010000 = 1.0.0).
+
+## Délais du mode dégradé (09/11, vérification de non-chevauchement)
+- Après un reset du CM5, la règle des 5 s sans heartbeat est suspendue pendant le délai de démarrage du CM5 (90 s, valeur supposée à mesurer), sinon le StamPLC relancerait le CM5 en boucle pendant son démarrage et épuiserait les 3 resets autorisés en 10 minutes. À implémenter dans `securite` (constante de configuration). On compte les resets, pas les silences.
+- Le StamPLC conserve son mode (NORMAL, VIDAGE ou MAINTENANCE) pendant un reset du CM5 ; le CM5 se resynchronise sur le mode annoncé. Valeurs supposées : mode vidage 30 min au plus, mode maintenance 15 min d'inactivité. Détail dans `Specification_CM5_RecyOS_v0.3.md`.

@@ -1,6 +1,6 @@
 # Spécification du logiciel CM5 (RecyOS) — interface avec le StamPLC
 
-Version 0.2 du 09/11/2026 (v0.1 du 08/11 : modes, niveaux et mise à jour précisés) — auteur : Emmanuel Gilwandji (CTO BilengeTech). Destinataire : le développeur du firmware et de l'IA du CM5.
+Version 0.3 du 09/11/2026 — auteur : Emmanuel Gilwandji (CTO BilengeTech). Destinataire : Aurore N'sasi (CEO), qui développe le logiciel du CM5 et l'IA.
 Référence de contrat : `ContratCM5RPI/contrat.proto` **v3** (`protocol_version = 3`). En cas de divergence, le fichier `.proto` fait foi.
 Le firmware du StamPLC K141 (ESP-IDF) est développé séparément ; ce document décrit ce que le CM5 doit faire et ce qu'il peut attendre du StamPLC.
 
@@ -53,7 +53,7 @@ Après `ACK_OK` d'un tri, suivre l'avancement par `ActivityStatus` (§4) ; le r�
 ## 5. Surveillance mutuelle et mode dégradé
 
 - Le CM5 envoie son heartbeat toutes les 2 s sans exception, y compris pendant un calcul d'IA (tâche dédiée, priorité haute).
-- **CM5 silencieux 5 s** : le StamPLC arrête les actionneurs, affiche « Hors service » et commande le reset du CM5 (alerte `DEGRADED_MODE` à la reprise). Maximum 3 resets en 10 minutes ; au-delà il attend 30 minutes avant de réessayer.
+- **CM5 silencieux 5 s** : le StamPLC arrête les actionneurs, affiche « Hors service » et commande le reset du CM5 (alerte `DEGRADED_MODE` à la reprise). Maximum 3 resets en 10 minutes ; au-delà il attend 30 minutes avant de réessayer. Après chaque reset, la règle des 5 s est suspendue pendant le délai de démarrage du CM5 (90 s, valeur supposée à mesurer sur le vrai CM5) : sans cela, le StamPLC relancerait le CM5 en boucle pendant son démarrage (voir §10).
 - Au redémarrage le CM5 lit `cm5_reset_count` côté StamPLC, journalise le motif et remonte l'incident au cloud ; il ne reprend les dépôts qu'après `HOME` réussi.
 - **StamPLC silencieux 5 s** (aucun heartbeat) : le CM5 passe en « borne hors service » (écran, plus de dépôt accepté), alerte `CRITICAL` au cloud, retente la liaison toutes les 5 s.
 - Système de fichiers du CM5 en lecture seule en exploitation, watchdog Linux actif ; les données à conserver (file d'attente, journaux) sont dans une partition séparée.
@@ -64,11 +64,12 @@ Après `ACK_OK` d'un tri, suivre l'avancement par `ActivityStatus` (§4) ; le r�
 2. **RecyCoins** = catégorie × pureté, calculés par l'IA. NON_RECYCLABLE ne donne **aucun** RecyCoin. Le firmware StamPLC ne connaît ni la pureté ni les points.
 3. **Pureté / fraude** : déchet sale, mal trié ou fraude → pas de RecyCoins pour ce dépôt ; l'événement est enregistré. (Seuils de pureté : valeurs supposées à confirmer avec la CEO.)
 4. **Bac plein** : la borne ne refuse jamais un dépôt. Elle affiche un message et déclenche les alertes.
-5. **Seuils d'alerte au videur** (plastique et non recyclable) : 70 %, 80 %, 95 % (95 % = vidage urgent). Le papier suit des seuils distincts (valeurs supposées à confirmer). Une alerte par franchissement de seuil, pas de répétition tant que le niveau reste dans la même tranche.
-6. **Compactage** : déclenché par le CM5 selon le niveau, 3 cycles maximum par séquence, jamais pour le papier. Le StamPLC refuse un quatrième cycle.
+5. **Seuils d'alerte au videur** (plastique et non recyclable) : 70 %, 80 %, 95 % (95 % = vidage urgent). Le papier suit des seuils distincts (valeurs supposées à confirmer). Une seule alerte par seuil et par remplissage : le compactage fait baisser puis remonter le niveau, mais les alertes ne sont réarmées qu'au vidage du bac (niveau ≤ 5 %).
+6. **Compactage** : déclenché par le CM5 quand le niveau atteint 70 % (valeur supposée, configurable), seulement en mode NORMAL et sans dépôt en cours ; 3 cycles maximum par séquence, jamais pour le papier. Le StamPLC refuse un quatrième cycle. Si le niveau reste à 95 % ou plus après la séquence, le CM5 lance l'alerte de vidage urgent.
 7. **Niveaux** : le StamPLC calcule le pourcentage de remplissage (3 mesures par bac, médiane, compensation en température). Le CM5 utilise `fill_level_pct` tel quel, sans refiltrer, et ignore un bac dont le bit de `valid_mask` est à 0 (tri ou compactage en cours dans ce bac, capteur absent, hors plage). Ce n'est pas une alerte.
    **Bac vidé** : un bac est considéré vidé quand son niveau repasse à **≤ 5 %** ; le CM5 remet alors ses compteurs d'alertes à zéro et le notifie.
 8. **Modes** (le StamPLC applique, le CM5 demande).
+
    - NORMAL : dépôts acceptés.
    - VIDAGE : activé quand le videur scanne le QR de la borne avec l'application mobile et que le backend valide. Le CM5 envoie `SET_MODE(VIDAGE)` : tri et compactage refusés, dépôts suspendus avec un message à l'écran, délai maximal. Sortie à la validation du vidage par le videur (retour en NORMAL ; `HOME` si `homed = false`).
    - MAINTENANCE : accès local authentifié depuis l'écran du CM5 uniquement (pas d'entrée à distance). Dépôts suspendus, vitesses réduites, tests limités dans le temps, sortie automatique, arrêt d'urgence toujours prioritaire. Retour en NORMAL seulement après `HOME`.
@@ -92,3 +93,27 @@ Après `ACK_OK` d'un tri, suivre l'avancement par `ActivityStatus` (§4) ; le r�
 - Module de pont série (`RecyOS/m5stack_bridge.py`) : envoi des commandes avec ack/renvoi, réception, heartbeat bidirectionnel, machine d'état de la liaison (§5).
 - Tests automatisés contre `faux_m5stack.py` : démarrage nominal, refus (non référencé, urgence, mode, occupé), perte de heartbeat dans les deux sens, trames corrompues, redémarrage du StamPLC (nouveau `session_id`).
 - Point ouvert côté CM5 : durées exactes des cycles et valeurs de seuils de pureté ; le StamPLC fournit en attendant des valeurs provisoires.
+
+## 10. Délais et non-chevauchement
+
+Ces valeurs sont cohérentes entre elles ; si le développeur en change une, il doit vérifier les règles de la dernière colonne.
+
+| Minuterie | Valeur | Cohérence |
+|---|---|---|
+| Heartbeat du StamPLC et du CM5 | 2 s chacun | Le silence se déclare à 5 s : il faut avoir manqué deux heartbeats de suite |
+| Silence déclaré (dans les deux sens) | 5 s | StamPLC : arrêt des actionneurs puis reset du CM5. CM5 : borne « hors service » |
+| Ack d'une commande | 1 s, 2 renvois (3 s au plus) | Moins que les 5 s : un renvoi ne déclenche jamais le mode dégradé ; c'est le heartbeat qui détecte la perte de liaison |
+| Délai de démarrage du CM5 après un reset | 90 s (supposé, à mesurer) | La règle des 5 s est suspendue pendant ce délai ; sinon 3 resets seraient consommés en 15 s |
+| Resets du CM5 | 3 par 10 min, puis pause de 30 min | On compte les resets, pas les silences de 5 s ; avec le délai de 90 s, 3 resets prennent au moins 4 min 30 s |
+| Rapport capteurs | 500 ms | Cycle de mesure des niveaux : moins de 300 ms pour 3 bacs ; médiane glissante sur 5 cycles (environ 2,5 s de lissage), donc pas de filtre supplémentaire côté CM5 |
+| Télémétrie vers le cloud | 15 min | Indépendante des alertes, qui partent tout de suite |
+| Durée maximale du mode VIDAGE | 30 min (supposé, configurable) | Sortie automatique vers NORMAL si le videur ne valide pas |
+| Durée maximale du mode MAINTENANCE | 15 min d'inactivité (supposé, configurable) | Sortie automatique ; l'arrêt d'urgence reste prioritaire |
+
+Règles complémentaires :
+
+- **Mode après un reset du CM5** : le StamPLC conserve son mode (VIDAGE reste un état sûr). Au redémarrage, le CM5 lit le mode dans le heartbeat et dans `ActivityStatus` et se resynchronise ; il ne suppose jamais NORMAL.
+- **Demande de mode pendant un cycle** : le StamPLC répond `ACK_BUSY`. Le CM5 cesse d'accepter de nouveaux dépôts, attend la fin du cycle (`SORT_IDLE` et `COMPACTION_IDLE`), puis renvoie `SET_MODE`.
+- **Pendant un compactage ou un tri**, le niveau du bac concerné est invalide (`valid_mask`) : aucune alerte ni décision ne doit s'appuyer sur ce bac pendant ce temps.
+- **Heartbeat en dégradé** : le heartbeat du CM5 continue d'être envoyé pendant toute la séquence de reset et de reprise.
+
