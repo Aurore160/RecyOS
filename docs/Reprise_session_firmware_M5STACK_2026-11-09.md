@@ -9,6 +9,11 @@ Document de passation pour la session « Firmware M5STACK RecyOS ». Il résume 
 - Claude n'envoie rien aux développeurs ni à la CEO : le CTO envoie lui-même.
 
 ## 2. Règles de travail (à respecter)
+- **Méthode obligatoire pour toute analyse, recherche ou diagnostic (consigne du CTO, 09/11/2026, valable pour toutes les sessions)** :
+  1. Analyser pour résoudre le problème : partir de la cause, pas d'un correctif de surface.
+  2. Ne rien supposer : vérifier toujours (lire les fichiers, lancer les tests, comparer avec les sources) avant d'affirmer. Ce qui n'a pas pu être vérifié est dit comme non vérifié, jamais présenté comme un fait.
+  3. Ne pas se fier à ce qui a l'air vrai : s'assurer que c'est réellement vrai, avec une preuve (exécution, lecture directe, seconde source). Si deux sources se contredisent, le signaler puis chercher laquelle est correcte.
+  Cette méthode s'applique aussi aux informations de ce document : en cas de doute, vérifier dans le dépôt ou le document cité avant de s'y fier.
 - Ne jamais supprimer un document : on archive (mv vers `99_ARCHIVES`). Le pont de fichiers interdit la suppression.
 - `00_EspaceCTO` est réservé à Recystation ; les documents personnels vont dans `B:\Gilw_Emmanuel\PARCOURS`.
 - Appliquer les décisions aux documents ACTUELS (pas de documents parallèles) ; les décisions qui relèvent du CTO lui sont posées, puis appliquées.
