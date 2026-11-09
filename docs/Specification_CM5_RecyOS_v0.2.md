@@ -1,6 +1,6 @@
 # Spécification du logiciel CM5 (RecyOS) — interface avec le StamPLC
 
-Version 0.1 du 08/11/2026 — auteur : Emmanuel Gilwandji (CTO BilengeTech). Destinataire : le développeur du firmware et de l'IA du CM5.
+Version 0.2 du 09/11/2026 (v0.1 du 08/11 : modes, niveaux et mise à jour précisés) — auteur : Emmanuel Gilwandji (CTO BilengeTech). Destinataire : le développeur du firmware et de l'IA du CM5.
 Référence de contrat : `ContratCM5RPI/contrat.proto` **v3** (`protocol_version = 3`). En cas de divergence, le fichier `.proto` fait foi.
 Le firmware du StamPLC K141 (ESP-IDF) est développé séparément ; ce document décrit ce que le CM5 doit faire et ce qu'il peut attendre du StamPLC.
 
@@ -66,8 +66,13 @@ Après `ACK_OK` d'un tri, suivre l'avancement par `ActivityStatus` (§4) ; le r�
 4. **Bac plein** : la borne ne refuse jamais un dépôt. Elle affiche un message et déclenche les alertes.
 5. **Seuils d'alerte au videur** (plastique et non recyclable) : 70 %, 80 %, 95 % (95 % = vidage urgent). Le papier suit des seuils distincts (valeurs supposées à confirmer). Une alerte par franchissement de seuil, pas de répétition tant que le niveau reste dans la même tranche.
 6. **Compactage** : déclenché par le CM5 selon le niveau, 3 cycles maximum par séquence, jamais pour le papier. Le StamPLC refuse un quatrième cycle.
-7. **Bac vidé** : un bac est considéré vidé quand son niveau repasse à **≤ 5 %** ; le CM5 remet alors ses compteurs d'alertes à zéro et le notifie.
-8. **Modes** : NORMAL (dépôts), VIDAGE (porte du bac accessible, tri et compactage refusés), MAINTENANCE (essais manuels). Le mode est demandé par le CM5 sur action authentifiée du technicien (badge NFC prévu dans la version suivante) ; retour en NORMAL seulement après `HOME`.
+7. **Niveaux** : le StamPLC calcule le pourcentage de remplissage (3 mesures par bac, médiane, compensation en température). Le CM5 utilise `fill_level_pct` tel quel, sans refiltrer, et ignore un bac dont le bit de `valid_mask` est à 0 (tri ou compactage en cours dans ce bac, capteur absent, hors plage). Ce n'est pas une alerte.
+   **Bac vidé** : un bac est considéré vidé quand son niveau repasse à **≤ 5 %** ; le CM5 remet alors ses compteurs d'alertes à zéro et le notifie.
+8. **Modes** (le StamPLC applique, le CM5 demande).
+   - NORMAL : dépôts acceptés.
+   - VIDAGE : activé quand le videur scanne le QR de la borne avec l'application mobile et que le backend valide. Le CM5 envoie `SET_MODE(VIDAGE)` : tri et compactage refusés, dépôts suspendus avec un message à l'écran, délai maximal. Sortie à la validation du vidage par le videur (retour en NORMAL ; `HOME` si `homed = false`).
+   - MAINTENANCE : accès local authentifié depuis l'écran du CM5 uniquement (pas d'entrée à distance). Dépôts suspendus, vitesses réduites, tests limités dans le temps, sortie automatique, arrêt d'urgence toujours prioritaire. Retour en NORMAL seulement après `HOME`.
+   - Le badge NFC du technicien est prévu pour la version suivante.
 9. **Arrêt d'urgence** : tout arrêt impose un nouvel `HOME` avant le prochain tri. Le CM5 affiche l'état et alerte le cloud.
 
 ## 7. Hors ligne et cloud
@@ -78,7 +83,11 @@ Après `ACK_OK` d'un tri, suivre l'avancement par `ActivityStatus` (§4) ; le r�
 - Identifiants uniques par événement (UUID) pour que le backend déduplique les rejeux.
 - Pas de portes ni de serrures intelligentes : le CM5 n'envoie aucune commande de verrouillage et ne gère aucun capteur de porte.
 
-## 8. Livrables attendus et tests
+## 8. Mise à jour du firmware du StamPLC
+- PoC et banc : par câble USB, sans intervention du CM5. La version du firmware est dans chaque heartbeat du StamPLC (`firmware_version`, format `0xMMmmpppp`) ; le CM5 la journalise et la remonte au cloud.
+- Mise à jour par le CM5 : **pas en V1**, après le banc. Elle se fera par messages de transfert ajoutés au contrat (début, blocs, fin avec SHA-256), seulement en mode maintenance. Le CM5 n'a rien à implémenter pour l'instant.
+
+## 9. Livrables attendus et tests
 
 - Module de pont série (`RecyOS/m5stack_bridge.py`) : envoi des commandes avec ack/renvoi, réception, heartbeat bidirectionnel, machine d'état de la liaison (§5).
 - Tests automatisés contre `faux_m5stack.py` : démarrage nominal, refus (non référencé, urgence, mode, occupé), perte de heartbeat dans les deux sens, trames corrompues, redémarrage du StamPLC (nouveau `session_id`).
