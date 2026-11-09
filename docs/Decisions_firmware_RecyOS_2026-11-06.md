@@ -23,7 +23,7 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 |---|---|---|---|
 | P9 | Cadrage UART | **Validé le 08/11** | Garder COBS + 0x00 ; ajouter un CRC-16 par trame des deux côtés et une taille maximale (le message le plus gros fait 116 octets ; plafond à fixer, par ex. 256). **Pas encore implémenté** dans `transport.py`. |
 | P10 | Contenu du rapport capteurs | **Validé le 08/11** (appliqué) | Rapport complet à 500 ms : 3 bacs, courant du bus, tension batterie, trappe, arrêt d'urgence, présence, température, humidité, inclinaison, DI, ports USB, drapeaux de défaut, `valid_mask` (un capteur absent n'est pas « 0 % »). À valider champ par champ. |
-| P11 | Capteurs de niveau en PoC | Proposé | Couche capteur de niveau à deux pilotes (JSN-SR04T pour le PoC, VL53L0X pour la V1) ; ne coder que le JSN-SR04T. Cycle ultrason bac par bac, pas « 10 ms ». |
+| P11 | Capteurs de niveau en PoC | **Décidé le 09/11 (T6)** | Couche capteur de niveau à deux pilotes (JSN-SR04T pour le PoC, VL53L0X pour la V1) ; ne coder que le JSN-SR04T. Cycle ultrason bac par bac, pas « 10 ms ». |
 | P12 | Identifiants des bacs | **Validé le 08/11** (appliqué) | Énumération `BAC_PLASTIQUE`, `BAC_PAPIER`, `BAC_NON_RECYCLABLE` ; la compaction du papier est refusée (`ACK_INVALID`). |
 | P13 | Horodatage | **Validé le 08/11** (appliqué) | Temps de fonctionnement dans l'enveloppe ; le CM5 envoie l'heure au démarrage (`CMD_SET_TIME`) pour régler le RTC. |
 
@@ -59,3 +59,9 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 
 ## BOM v8.1 (09/11, T9)
 - Un seul M18 de homing (DI6), repris des 3 inductifs déjà achetés ; capacitif M18 retiré ; stabilisateur 24 V (LM2596) et module de repli ajoutés ; bouton d'arrêt d'urgence et contacteur de puissance DC 24 V ajoutés (à concevoir à la fin) ; leviers en stock affectés à l'interrupteur de porte, sur la bobine du contacteur. Fichier : `09_VALIDATIONS/BOM_RecyStation_v8.1.xlsx` de l'espace CTO.
+
+## Capteurs de niveau (09/11, T6)
+- Interface `capteur_niveau_ops_t` (composant `drivers`) avec deux pilotes : JSN-SR04T codé (PoC) et VL53L0X en coquille vide (V1, TD-01), choisis par `NIVEAU_CAPTEUR_TYPE` dans `config_niveau.h`.
+- Module `niveau` (composant `logique`, testable sur PC) : 3 mesures par bac et par cycle, médiane, médiane glissante sur 5 cycles, compensation en température (BME680, 25 °C par défaut), mesure invalide (jamais « 0 % ») si pas d'écho, hors plage (zone aveugle de 20 cm) ou bac occupé par un tri ou un compactage. Un bac est vide à 5 % ou moins.
+- Distances à vide et à plein : constantes provisoires (900 et 250 mm), calibration par commande en mode maintenance plus tard. Broches du JSN : `config_jsn.h`, à affecter d'après le mapping (-1 = non câblé).
+- Le pilote JSN n'a pas pu être compilé avec ESP-IDF ici (seulement vérifié en syntaxe) : à compiler et essayer au banc. Reste à brancher la tâche de mesure au rapport capteurs (`valid_mask`).
