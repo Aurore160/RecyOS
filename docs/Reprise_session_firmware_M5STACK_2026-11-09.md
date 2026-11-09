@@ -31,7 +31,7 @@ Espace CTO : `B:\Gilw_Emmanuel\BILENGE_TECH\00_EspaceCTO\RECYSTATION-TECH`
 - Fichier d'écarts API/backend : `02_SPECIFICATIONS/API/Ecarts_API_Backend_vs_decisions_v0.9` (section « D. Documents » retirée ; question B9 à revoir par le CTO).
 
 ## 4. État du dépôt (branche M5stack, commits non poussés)
-Derniers commits : 7306a98 (spec CM5 v0.3), c20150c (v0.2), 589d7d4 (T7 OTA), a9d9ae9 (T6 niveaux), 72185dc (T9 BOM), 672bcdb (T8), 82157b2 (spec CM5 v0.1), 2327516 (contrat v3). Le CTO doit pousser `M5stack`.
+Pour l'état exact, faire `git log --oneline` (les commits récents sont des documents : passation, spécification CM5 v0.4 en bb70f90). Anciens commits principaux : 7306a98 (spec CM5 v0.3), c20150c (v0.2), 589d7d4 (T7 OTA), a9d9ae9 (T6 niveaux), 72185dc (T9 BOM), 672bcdb (T8), 82157b2 (spec CM5 v0.1), 2327516 (contrat v3). Le CTO doit pousser `M5stack`.
 
 ## 5. Architecture et contrat v3
 - Deux cerveaux : CM5 (RecyOS, IA, écran, cloud) et StamPLC (capteurs, actionneurs, sécurité). **Le CM5 décide QUAND ; le StamPLC décide COMMENT et refuse.**
