@@ -56,3 +56,6 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 - `protocol_version` = 3. Ajouts : commandes `SORT_WASTE`, `HOME`, `SET_MODE`, `TEST_ACTUATOR`, `SET_OUTPUT`, `ABORT_CYCLE` ; message `ActivityStatus` (mode, référencé, états de tri et de compactage, résultats) ; statuts `ACK_REFUSED_MODE` et `ACK_REFUSED_NOT_HOMED` ; alertes `MOTOR_FAULT`, `CYCLE_TIMEOUT`, `NOT_HOMED`, `DEGRADED_MODE` ; heartbeat bidirectionnel (source, mode, compteur de resets du CM5).
 - `CMD_OPEN_TRAPDOOR` retirée (numéro réservé). Principe : le CM5 décide quand, le StamPLC décide comment et refuse.
 - Simulateur de référence : `ContratCM5RPI/faux_m5stack.py` (classe `EtatSimule`), tests dans `test_regles_v3.py`.
+
+## BOM v8.1 (09/11, T9)
+- Un seul M18 de homing (DI6), repris des 3 inductifs déjà achetés ; capacitif M18 retiré ; stabilisateur 24 V (LM2596) et module de repli ajoutés ; bouton d'arrêt d'urgence et contacteur de puissance DC 24 V ajoutés (à concevoir à la fin) ; leviers en stock affectés à l'interrupteur de porte, sur la bobine du contacteur. Fichier : `09_VALIDATIONS/BOM_RecyStation_v8.1.xlsx` de l'espace CTO.
