@@ -32,7 +32,7 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 | Réf. | Sujet | Statut | Décision / ce qu'il faut |
 |---|---|---|---|
 | P14 | Où vit le firmware | **Décidé le 06/11 : `firmware_m5stack/`** | Même dépôt, un seul `contrat.proto`. Le dossier garde le nom `firmware_m5stack/`. |
-| P15 | Mise à jour du firmware | Proposé | V1 : table de partitions avec double partition OTA (flash 8 Mo) ; mise à jour par le CM5 via l'UART repoussée après le banc. |
+| P15 | Mise à jour du firmware | **Décidé le 09/11 (T7)** | V1 : table de partitions avec double partition OTA (flash 8 Mo) ; mise à jour par le CM5 via l'UART repoussée après le banc. |
 | P16 | Calendrier | **À trancher** | La date du 6 novembre est atteinte. À fixer après les décisions P6, P10. |
 
 ## Autres décisions à prendre (documents « Prérequis »)
@@ -65,3 +65,10 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 - Module `niveau` (composant `logique`, testable sur PC) : 3 mesures par bac et par cycle, médiane, médiane glissante sur 5 cycles, compensation en température (BME680, 25 °C par défaut), mesure invalide (jamais « 0 % ») si pas d'écho, hors plage (zone aveugle de 20 cm) ou bac occupé par un tri ou un compactage. Un bac est vide à 5 % ou moins.
 - Distances à vide et à plein : constantes provisoires (900 et 250 mm), calibration par commande en mode maintenance plus tard. Broches du JSN : `config_jsn.h`, à affecter d'après le mapping (-1 = non câblé).
 - Le pilote JSN n'a pas pu être compilé avec ESP-IDF ici (seulement vérifié en syntaxe) : à compiler et essayer au banc. Reste à brancher la tâche de mesure au rapport capteurs (`valid_mask`).
+
+## Mise à jour du firmware (09/11, T7)
+- Flash de 8 Mo (fiche StamPLC v3.2). `firmware_m5stack/partitions.csv` : deux emplacements de 2 Mo (`ota_0`, `ota_1`), `otadata`, `nvs`, `phy_init` et 1 Mo de stockage. Retour arrière automatique activé dans `sdkconfig.defaults` : un nouveau firmware n'est validé (appel à `esp_ota_mark_app_valid_cancel_rollback`) qu'après démarrage, liaison avec le CM5 retrouvée et autotest réussi (`self_test_ok`). Cet appel reste à écrire avec le transport.
+- PoC et banc : mise à jour par câble USB (`idf.py flash`).
+- Mise à jour par le CM5 : après le banc. Elle demandera des messages de transfert (début, blocs, fin avec SHA-256) à ajouter au contrat ; seulement en mode maintenance, sans cycle en cours, arrêt d'urgence prioritaire (refus `ACK_REFUSED_MODE` sinon). Les numéros de champ à utiliser seront choisis à ce moment, sans réutiliser un numéro existant.
+- Signature des firmwares (secure boot) et chiffrement de la flash : hors V1, irréversible, à décider avant un déploiement à grande échelle.
+- Version : format `0xMMmmpppp` déjà utilisé dans le heartbeat (0x00010000 = 1.0.0).
