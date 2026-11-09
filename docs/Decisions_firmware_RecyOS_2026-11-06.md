@@ -76,3 +76,8 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 ## Délais du mode dégradé (09/11, vérification de non-chevauchement)
 - Après un reset du CM5, la règle des 5 s sans heartbeat est suspendue pendant le délai de démarrage du CM5 (90 s, valeur supposée à mesurer), sinon le StamPLC relancerait le CM5 en boucle pendant son démarrage et épuiserait les 3 resets autorisés en 10 minutes. À implémenter dans `securite` (constante de configuration). On compte les resets, pas les silences.
 - Le StamPLC conserve son mode (NORMAL, VIDAGE ou MAINTENANCE) pendant un reset du CM5 ; le CM5 se resynchronise sur le mode annoncé. Valeurs supposées : mode vidage 30 min au plus, mode maintenance 15 min d'inactivité. Détail dans `Specification_CM5_RecyOS_v0.3.md`.
+
+## Fonctionnement global et durées (09/11)
+- Création de `FonctionnementGlobal` et `SpecificiteSysteme` (`01_ARCHITECTURE/System`) : référence vivante du fonctionnement et des valeurs capitales.
+- Décision du CTO : l'exigence « moins de 500 ms » des besoins concerne l'analyse par l'IA, pas le tri mécanique. La durée du tri mécanique repose sur le calcul (6,7 / 12,9 / 19,1 s, limite avant défaut environ 32,7 s) jusqu'au test physique ; valeur officielle à fixer après le banc. Ajoutée à la spécification CM5 v0.5 avec un délai de garde du CM5 de 35 s (supposé).
+- Mapping v1.4 : alignement sur P1 (broche 10 = reset du CM5), T8 (Nema 23 via le stabilisateur), P2/P3/T3/T9 (arrêt d'urgence et interrupteur de porte sur la bobine du contacteur).

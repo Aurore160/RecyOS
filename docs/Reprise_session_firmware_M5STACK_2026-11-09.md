@@ -4,7 +4,7 @@ Document de passation pour la session « Firmware M5STACK RecyOS ». Il résume 
 
 ## 1. Rôle et personnes
 - Emmanuel Gilwandji, CTO de BilengeTech SAS (projet Recystation, déploiement à Kinshasa, RDC), conçoit **uniquement** le firmware du StamPLC M5Stack K141 (ESP32-S3FN8, ESP-IDF, 8 Mo de flash). Il fait lui-même les `git push`.
-- Aurore N'sasi (CEO) développe le logiciel du CM5 (RecyOS) et l'IA. Elle reçoit `Specification_CM5_RecyOS_v0.4` (sans mot d'accompagnement, envoyée par le CTO).
+- Aurore N'sasi (CEO) développe le logiciel du CM5 (RecyOS) et l'IA. Elle reçoit `Specification_CM5_RecyOS_v0.5` (sans mot d'accompagnement, envoyée par le CTO).
 - Les développeurs backend reçoivent le fichier d'écarts API/backend et leurs questions B1 à B9. Un concepteur de la trappe doit fournir les paramètres mécaniques (M1 à M3).
 - Claude n'envoie rien aux développeurs ni à la CEO : le CTO envoie lui-même.
 
@@ -25,10 +25,12 @@ Document de passation pour la session « Firmware M5STACK RecyOS ». Il résume 
 Espace CTO : `B:\Gilw_Emmanuel\BILENGE_TECH\00_EspaceCTO\RECYSTATION-TECH`
 - Dépôt firmware : `07_ENGINEERING/Firmware/RecyOS` (github.com/Aurore160/RecyOS, branche `M5stack`, projet ESP-IDF dans `firmware_m5stack/`).
 - Contrat : `ContratCM5RPI/contrat.proto` (v3), `faux_m5stack.py` (simulateur à état), `test_regles_v3.py`, `Test/test_transport.py`.
-- Décisions : `docs/Decisions_firmware_RecyOS_2026-11-06.md` ; spécification CM5 : `docs/Specification_CM5_RecyOS_v0.4.md` (+ docx/pdf dans `02_SPECIFICATIONS/CM5`).
-- BOM : `09_VALIDATIONS/BOM_RecyStation_v8.2.xlsx` ; mapping broches : `09_VALIDATIONS/Mapping_PoC_RecyStation_v1.3.xlsx` ; achats : `06_HARDWARE/Achats` (listes « restant à acheter », lot CEO) ; stabilisateur 24 V : `06_HARDWARE/Alimentation_24V_MKS`.
+- Décisions : `docs/Decisions_firmware_RecyOS_2026-11-06.md` ; spécification CM5 : `docs/Specification_CM5_RecyOS_v0.5.md` (+ docx/pdf dans `02_SPECIFICATIONS/CM5`).
+- BOM : `09_VALIDATIONS/BOM_RecyStation_v8.2.xlsx` ; mapping broches : `09_VALIDATIONS/Mapping_PoC_RecyStation_v1.4.xlsx` ; achats : `06_HARDWARE/Achats` (listes « restant à acheter », lot CEO) ; stabilisateur 24 V : `06_HARDWARE/Alimentation_24V_MKS`.
 - Questions ouvertes : `09_VALIDATIONS/Questions_ouvertes_et_validateurs_2026-11-09` (et extraits CEO / développeurs backend) ; copies prêtes à envoyer : `08_MANAGEMENT/Envois`.
 - Fichier d'écarts API/backend : `02_SPECIFICATIONS/API/Ecarts_API_Backend_vs_decisions_v0.9` (section « D. Documents » retirée ; question B9 à revoir par le CTO).
+
+- **Documents de référence du fonctionnement (à lire et à tenir à jour)** : `01_ARCHITECTURE/System/FonctionnementGlobal` (fonctionnement détaillé par couche, chaque fait marqué vérifié / décidé / supposé / ouvert) et `01_ARCHITECTURE/System/SpecificiteSysteme` (informations capitales : durées de la procédure de dépôt, délais, seuils, limites, paramètres à mesurer au banc). Mise à jour à chaque information importante. Temps d'un tri : 6,7 s (plastique), 12,9 s (papier), 19,1 s (non recyclable), limite avant défaut environ 32,7 s : valeurs **calculées** à partir de `config_tri.h` provisoire, à mesurer au banc ; l'exigence de 500 ms concerne l'analyse par l'IA, pas le tri mécanique. Spécification CM5 v0.5 : ajout du temps maximal d'un tri (valeur à fixer après le banc) et d'un délai de garde du CM5 de 35 s (supposé). Mapping v1.4 (09/11) : broche 10 = reset du CM5, Nema 23 alimenté via le stabilisateur, arrêt d'urgence et interrupteur de porte sur la bobine du contacteur.
 
 ## 4. État du dépôt (branche M5stack, commits non poussés)
 Pour l'état exact, faire `git log --oneline` (les commits récents sont des documents : passation, spécification CM5 v0.4 en bb70f90). Anciens commits principaux : 7306a98 (spec CM5 v0.3), c20150c (v0.2), 589d7d4 (T7 OTA), a9d9ae9 (T6 niveaux), 72185dc (T9 BOM), 672bcdb (T8), 82157b2 (spec CM5 v0.1), 2327516 (contrat v3). Le CTO doit pousser `M5stack`.
@@ -50,13 +52,13 @@ Pour l'état exact, faire `git log --oneline` (les commits récents sont des doc
 
 ## 7. État du code (`firmware_m5stack/`)
 - Fait et testé sur PC : contrat nanopb v3 régénéré (`tools/gen_contrat.sh`), trames COBS/CRC (`test/test_trame.c`), séquence de tri (`tri.c`, `test_tri.c`), module de niveau (`niveau.c`, `test_niveau.c` ; compilation : `gcc -Wall -Wextra -Werror -Icomponents/logique/include -Icomponents/drivers/include test/test_niveau.c components/logique/niveau.c -lm`).
-- **Jamais compilé avec ESP-IDF** : `capteur_jsn.c`, les CMakeLists modifiés, `partitions.csv`, `sdkconfig.defaults`. Broches JSN non attribuées (-1, à prendre dans le mapping v1.3) ; distances de calibration provisoires.
+- **Jamais compilé avec ESP-IDF** : `capteur_jsn.c`, les CMakeLists modifiés, `partitions.csv`, `sdkconfig.defaults`. Broches JSN non attribuées (-1, à prendre dans le mapping v1.4) ; distances de calibration provisoires.
 - Squelettes seulement : `securite/` (arrêt d'urgence, état sûr, perte du heartbeat), `transport/transport.c` (UART), `drivers/drivers.c`, `main/main.c`.
 
 ## 8. Prochaines étapes
 1. **Compilation ESP-IDF 5.x** : le CTO est en train d'installer ESP-IDF sur son PC Windows (installation toujours en cours au 09/11). Dès qu'il dit « ESP-IDF est prêt » : lui demander d'exécuter `idf.py set-target esp32s3` puis `idf.py build` et de coller les erreurs ; corriger `capteur_jsn.c`, les CMakeLists et les partitions. (Le shell Linux de Claude ne peut pas piloter son ESP-IDF Windows ; contrôle d'écran possible avec sa permission.)
 2. **Machine d'états de sécurité** (`securite/`) : arrêt d'urgence, modes vidage et maintenance, homing après arrêt, perte du heartbeat, délai de démarrage de 90 s du CM5, limite de 3 resets en 10 min. Peut être écrite et testée sur PC sans ESP-IDF.
-3. Transport UART réel, câblage des broches (mapping v1.3), tâche de mesure des niveaux alimentant SensorReport / `valid_mask`, appel qui valide la mise à jour OTA.
+3. Transport UART réel, câblage des broches (mapping v1.4), tâche de mesure des niveaux alimentant SensorReport / `valid_mask`, appel qui valide la mise à jour OTA.
 4. Signaler au CTO quand ces points deviennent bloquants : **T13** (broche de reset du CM5 accessible sur la carte porteuse, avant de choisir la carte), **T15** (acheter les composants du stabilisateur et tester au banc avant de brancher le Nema 23), **T16** (M18 NPN/PNP compatible avec l'entrée DI 6–36 V, au câblage du homing), **T14** (arrêt d'urgence, contacteur, interrupteur de porte, à la fin de la conception matérielle), **T1** (relecture finale du fichier d'écarts avant l'envoi aux développeurs backend).
 
 ## 9. Points ouverts chez les autres
