@@ -81,3 +81,8 @@ Légende : **Proposé** = recommandation appliquée ou prête, à valider par le
 - Création de `FonctionnementGlobal` et `SpecificiteSysteme` (`01_ARCHITECTURE/System`) : référence vivante du fonctionnement et des valeurs capitales.
 - Décision du CTO : l'exigence « moins de 500 ms » des besoins concerne l'analyse par l'IA, pas le tri mécanique. La durée du tri mécanique repose sur le calcul (6,7 / 12,9 / 19,1 s, limite avant défaut environ 32,7 s) jusqu'au test physique ; valeur officielle à fixer après le banc. Ajoutée à la spécification CM5 v0.5 avec un délai de garde du CM5 de 35 s (supposé).
 - Mapping v1.4 : alignement sur P1 (broche 10 = reset du CM5), T8 (Nema 23 via le stabilisateur), P2/P3/T3/T9 (arrêt d'urgence et interrupteur de porte sur la bobine du contacteur).
+
+## Présence et réveil de l'écran (13/11)
+- Décision du CTO : le réveil de l'écran se fait côté CM5, à partir de `presence_detected` envoyé par le StamPLC (le StamPLC ne pilote pas l'écran).
+- Firmware : module `presence` (filtre 3 lectures consécutives, maintien 5 s, valeurs provisoires) et interface de pilote `capteur_presence` (RCWL-0516 en PoC, cellule M18 en V1). Capteur muet : présence invalide (`VALID_PRESENCE`), jamais « personne ».
+- Spécification CM5 v0.6, règle 10 : écran allumé sur `presence_detected`, veille après 60 s (supposé) sans présence ni session ni dépôt ; capteur muet : l'écran reste allumé. Caméra non utilisée pour le réveil en V1. FonctionnementGlobal et SpecificiteSysteme passent en v0.2.
