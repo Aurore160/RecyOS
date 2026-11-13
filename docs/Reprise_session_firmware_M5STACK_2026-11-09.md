@@ -34,6 +34,8 @@ Espace CTO : `B:\Gilw_Emmanuel\BILENGE_TECH\00_EspaceCTO\RECYSTATION-TECH`
 
 - **Présence et réveil de l'écran (13/11)** : le réveil de l'écran se fait côté CM5 à partir de `presence_detected` que le StamPLC envoie (spec CM5 v0.6, règle 10 ; délai de veille 60 s supposé). Côté firmware : module `logique/presence.c` (filtre : 3 lectures consécutives, maintien 5 s, capteur muet = invalide, jamais « personne »), interface `drivers/capteur_presence.h`, pilotes RCWL-0516 (PCF8574 P0, 0x20) et M18 photoélectrique (TD-02) en coquille vide (lecture I2C à écrire avec le bus partagé) ; test PC `test/test_presence.c` OK. Reste : tâche qui lit la présence toutes les 100 ms et alimente `presence_detected` et `VALID_PRESENCE`. Le capteur capacitif n'est pas adapté à l'approche (portée de quelques mm).
 
+- **Illustration du flux de communication (13/11)** : page interactive « Flux de communication borne » (copie `01_ARCHITECTURE/System/Flux_communication_borne_v0.1.html`) : 8 scénarios, 10 liaisons, étapes marquées décidé / supposé / calculé / ouvert. Le CTO s'en sert pour proposer des ajustements ; la mettre à jour avec FonctionnementGlobal. Le schéma de câblage physique viendra après la mise à jour du mapping.
+
 ## 4. État du dépôt (branche M5stack, commits non poussés)
 Pour l'état exact, faire `git log --oneline` (les commits récents sont des documents : passation, spécification CM5 v0.4 en bb70f90). Anciens commits principaux : 7306a98 (spec CM5 v0.3), c20150c (v0.2), 589d7d4 (T7 OTA), a9d9ae9 (T6 niveaux), 72185dc (T9 BOM), 672bcdb (T8), 82157b2 (spec CM5 v0.1), 2327516 (contrat v3). Le CTO doit pousser `M5stack`.
 
