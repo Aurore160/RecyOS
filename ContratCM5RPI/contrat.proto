@@ -113,7 +113,7 @@ enum CommandType {
   CMD_HOME             = 10; // retour à la référence (M18, DI6)
   CMD_SET_MODE         = 11; // mode normal, vidage ou maintenance
   CMD_TEST_ACTUATOR    = 12; // test manuel d'un actionneur (mode maintenance seulement)
-  CMD_SET_OUTPUT       = 13; // DO 1 (ventilateur) et DO 2 (éclairage)
+  CMD_SET_OUTPUT       = 13; // DO 2 (éclairage) ; DO 1 (ventilateur) refusé : il n'obéit qu'au StamPLC
   CMD_ABORT_CYCLE      = 14; // arrête le tri ou le compactage en cours (sans verrou d'arrêt d'urgence)
 }
 
@@ -191,7 +191,7 @@ message TestActuator {
 
 enum OutputId {
   OUTPUT_UNSPECIFIED = 0; // refusé (ACK_INVALID)
-  OUTPUT_FAN         = 1; // DO 1
+  OUTPUT_FAN         = 1; // DO 1 : refusé (ACK_INVALID), le ventilateur n'obéit qu'au StamPLC
   OUTPUT_LIGHT       = 2; // DO 2
 }
 

@@ -114,6 +114,14 @@ class EtatSimule:
         self.homed = False
         self.urgence = False
         self.cycle_en_cours = False
+        # Bouton d'arrêt d'urgence (DI1) : absent sur la borne pilote (Option B, D1). S'il est présent, il doit être
+        # réarmé (bouton_ferme = True) pour que CLEAR_EMERGENCY soit accepté (contrat P3 : DI1 réarmé ET commande).
+        self.bouton_present = False
+        self.bouton_ferme = True
+        # Cycles de compactage acceptés dans la séquence en cours, par bac (plafond du StamPLC, pilote : 2).
+        # Le délai de refroidissement des vérins (BUSY) n'est pas simulé : ce simulateur n'a pas d'horloge.
+        self.cycles_max = 2
+        self.cycles_seq = {contrat_pb2.BAC_PLASTIQUE: 0, contrat_pb2.BAC_NON_RECYCLABLE: 0}
 
     def appliquer(self, c: "contrat_pb2.Command") -> int:
         ack = contrat_pb2
@@ -130,7 +138,10 @@ class EtatSimule:
             self.homed = False  # un arrêt impose un nouveau référencement
             return ack.ACK_OK
         if t == ack.CMD_CLEAR_EMERGENCY:
+            if self.urgence and self.bouton_present and not self.bouton_ferme:
+                return ack.ACK_REFUSED_EMERGENCY  # le bouton est encore enfoncé : il faut le réarmer d'abord
             self.urgence = False
+            self.homed = False
             return ack.ACK_OK
         if t in (ack.CMD_READ_SENSORS, ack.CMD_SET_TIME, ack.CMD_SET_LED):
             return ack.ACK_OK
@@ -142,6 +153,12 @@ class EtatSimule:
                 return ack.ACK_INVALID
             if self.cycle_en_cours:
                 return ack.ACK_BUSY
+            # spec v0.6 §8 : le retour en NORMAL depuis la maintenance exige un HOME fait (pas depuis le vidage)
+            if self.mode == ack.MODE_MAINTENANCE and m == ack.MODE_NORMAL and not self.homed:
+                return ack.ACK_REFUSED_NOT_HOMED
+            if self.mode == ack.MODE_VIDAGE and m != ack.MODE_VIDAGE:
+                for bac in self.cycles_seq:
+                    self.cycles_seq[bac] = 0  # le vidage vide les bacs : les séquences de compactage repartent de zéro
             self.mode = m
             return ack.ACK_OK
         if t == ack.CMD_ABORT_CYCLE:
@@ -161,6 +178,8 @@ class EtatSimule:
                 return ack.ACK_INVALID
             if t == ack.CMD_SET_OUTPUT and c.set_output.output == ack.OUTPUT_UNSPECIFIED:
                 return ack.ACK_INVALID
+            if t == ack.CMD_SET_OUTPUT and c.set_output.output == ack.OUTPUT_FAN:
+                return ack.ACK_INVALID  # le ventilateur (DO1) n'obéit qu'au StamPLC
             return ack.ACK_OK
         # SORT_WASTE et START_COMPACTION : mode normal, référencé, libre
         if t == ack.CMD_SORT_WASTE and c.sort_waste.bac == ack.BAC_UNSPECIFIED:
@@ -174,6 +193,10 @@ class EtatSimule:
             return ack.ACK_REFUSED_NOT_HOMED
         if self.cycle_en_cours:
             return ack.ACK_BUSY
+        if t == ack.CMD_START_COMPACTION:
+            if self.cycles_seq[c.start_compaction.bac] >= self.cycles_max:
+                return ack.ACK_INVALID  # plafond de cycles atteint (proposition : le contrat ne fixe pas le code)
+            self.cycles_seq[c.start_compaction.bac] += 1
         return ack.ACK_OK
 
 

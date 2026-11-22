@@ -50,7 +50,7 @@ typedef enum _recystation_comm_CommandType {
     recystation_comm_CommandType_CMD_HOME = 10, /* retour à la référence (M18, DI6) */
     recystation_comm_CommandType_CMD_SET_MODE = 11, /* mode normal, vidage ou maintenance */
     recystation_comm_CommandType_CMD_TEST_ACTUATOR = 12, /* test manuel d'un actionneur (mode maintenance seulement) */
-    recystation_comm_CommandType_CMD_SET_OUTPUT = 13, /* DO 1 (ventilateur) et DO 2 (éclairage) */
+    recystation_comm_CommandType_CMD_SET_OUTPUT = 13, /* DO 2 (éclairage) ; DO 1 (ventilateur) refusé : il n'obéit qu'au StamPLC */
     recystation_comm_CommandType_CMD_ABORT_CYCLE = 14 /* arrête le tri ou le compactage en cours (sans verrou d'arrêt d'urgence) */
 } recystation_comm_CommandType;
 
@@ -71,7 +71,7 @@ typedef enum _recystation_comm_Actuator {
 
 typedef enum _recystation_comm_OutputId {
     recystation_comm_OutputId_OUTPUT_UNSPECIFIED = 0, /* refusé (ACK_INVALID) */
-    recystation_comm_OutputId_OUTPUT_FAN = 1, /* DO 1 */
+    recystation_comm_OutputId_OUTPUT_FAN = 1, /* DO 1 : refusé (ACK_INVALID), le ventilateur n'obéit qu'au StamPLC */
     recystation_comm_OutputId_OUTPUT_LIGHT = 2 /* DO 2 */
 } recystation_comm_OutputId;
 
