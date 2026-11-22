@@ -1,16 +1,11 @@
-# This is a sample Python script.
+"""Point d'entrée de RecyOS (côté Raspberry Pi CM5) — en construction.
 
-# Press Maj+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+Le pont vers le StamPLC (RecyOS/m5stack_bridge.py) reste à écrire.
+En attendant, pour tester le transport sans matériel :
 
+    python ContratCM5RPI/faux_m5stack.py        # simulateur du StamPLC (terminal 1)
+    python ContratCM5RPI/test_client_recyos.py  # client de test (terminal 2)
+"""
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+if __name__ == "__main__":
+    print(__doc__)

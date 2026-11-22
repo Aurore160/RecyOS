@@ -35,7 +35,8 @@ def tache_ecoute(sock: socket.socket) -> None:
         print(f"[RecyOS test] Reçu : {type_recu} (message_id={enveloppe.message_id})")
 
         if type_recu == "sensor_report":
-            print(f"    -> niveau du bac : {enveloppe.sensor_report.fill_level_pct}%")
+            for niveau in enveloppe.sensor_report.levels:
+                print(f"    -> {contrat_pb2.Bac.Name(niveau.bac)} : {niveau.fill_level_pct}%")
         elif type_recu == "heartbeat":
             print(f"    -> self_test_ok : {enveloppe.heartbeat.self_test_ok}")
         elif type_recu == "ack":
@@ -56,7 +57,7 @@ def main() -> None:
 
     print("[RecyOS test] Envoi d'une Command de test (CMD_READ_SENSORS)...")
     commande = contrat_pb2.Envelope(
-        protocol_version=1,
+        protocol_version=3,
         message_id=1,
         session_id=99,
         command=contrat_pb2.Command(
